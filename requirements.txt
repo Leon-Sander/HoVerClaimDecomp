@@ -1,0 +1,6 @@
+torch 
+transformers
+chromadb
+langchain
+sentence_transformers
+InstructorEmbedding
