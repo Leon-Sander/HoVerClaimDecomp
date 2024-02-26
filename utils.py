@@ -1,5 +1,5 @@
 import json
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 import chromadb
 
 def save_obj(obj, path):

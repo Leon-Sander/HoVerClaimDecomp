@@ -4,3 +4,6 @@ chromadb
 langchain
 sentence_transformers
 InstructorEmbedding
+
+bitsandbytes
+accelerate
