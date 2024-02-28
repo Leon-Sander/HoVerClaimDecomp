@@ -14,9 +14,9 @@ chain = create_chain(create_prompt(template=decompose_9shot),
 
 if __name__ == "__main__":
     output = {
-        2: {"SUPPORTED": [], "NOT_SUPPORTED": []},
-        3: {"SUPPORTED": [], "NOT_SUPPORTED": []},
-        4: {"SUPPORTED": [], "NOT_SUPPORTED": []}}
+        "2": {"SUPPORTED": [], "NOT_SUPPORTED": []},
+        "3": {"SUPPORTED": [], "NOT_SUPPORTED": []},
+        "4": {"SUPPORTED": [], "NOT_SUPPORTED": []}}
     
     data = load_obj("qualitative_analysis_claims.json")
 

@@ -2,7 +2,7 @@ import unicodedata
 from utils import load_obj
 
 def is_successful_retrieval(obj, retrieval_key):
-    print(len(obj[retrieval_key]))
+    #print(len(obj[retrieval_key]))
     retrieved_titles = set(unicodedata.normalize('NFD', title) for title in obj[retrieval_key])
     
     for fact in obj.get('supporting_facts', []):
