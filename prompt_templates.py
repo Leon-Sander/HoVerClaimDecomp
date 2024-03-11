@@ -158,3 +158,191 @@ The documentary featuring Gerald B. Lefcourt portrays a character who is a real-
 
 MULTI-HOP CLAIM: {claim}
 DECOMPOSED CLAIMS:[/INST]"""
+
+decompose_9shot_instruct = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, your goal is to decompose it down into simpler, standalone claims.
+Each decomposed claim should:
+
+1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
+2. Isolate Key Concepts and Relationships: Highlight main subjects, actions, and notable attributes to ensure the vectors generated from these claims closely align with those of potential matching documents.
+3. Ensure Standalone Validity: Each claim must be understandable and searchable without reference to other claims, containing all necessary information for retrieval.
+4. Optimize for Vector Similarity: Use language and terms that are expected to generate vectors similar to those of the target documents, enhancing the likelihood of a match.
+5. NOT ADD ANY INFORMATION, WHICH IS NOT PRESENT IN THE multi-hop claim, ONLY USE INFORMATION GIVEN IN THE multi-hop claim.
+6. Be separated with a newline.
+
+Here are nine examples, followed by the MULTI-HOP CLAIM you have to decompose.
+[/INST]
+###
+MULTI-HOP CLAIM: Ian Hunter from Mott the Hoople was born before the band member that released the album Dixie Chicken. That band member had the song 'Ride Like the Wind' dedicated to him.
+DECOMPOSED CLAIMS: Ian Hunter was a member of Mott the Hoople.
+Ian Hunter was born before the band member who released the album "Dixie Chicken."
+The song "Ride Like the Wind" was dedicated to the band member who released the album "Dixie Chicken."
+
+MULTI-HOP CLAIM: The defending champion of the 1979 Romika Cup - Singles and another tennis player are both tennis players. The other tennis player was defending champion at the 1994 Waldbaum's Hamlet Cup.
+DECOMPOSED CLAIMS: The 1979 Romika Cup - Singles had a defending champion who is a tennis player.
+The 1994 Waldbaum's Hamlet Cup had a defending champion who is a tennis player.
+
+MULTI-HOP CLAIM: The movie '100 Million BC' continues the urban myth of an experiment allegedly carried out at the Philadelphia Naval Shipyard.
+DECOMPOSED CLAIMS: The movie '100 Million BC' is based on or references an urban myth experiment.
+An urban myth experiment was allegedly carried out at the Philadelphia Naval Shipyard
+
+MULTI-HOP CLAIM: T the band Comeback Kid took their name form a headline about the current NHL team owner who played for the team that won the Stanley cup in 1992.
+DECOMPOSED CLAIMS: The band Comeback Kid took their name from a headline.
+The headline related to the name "Comeback Kid" involves an NHL team owner.
+The NHL team owner associated with "Comeback Kid" was a former player for the NHL team that won the Stanley cup in 1992.
+
+MULTI-HOP CLAIM: The TV show starring Will Smith was written by the creator of 'The Borowitz Report'. This show also starred Joseph Marcell.",
+DECOMPOSED CLAIMS: The TV show starring Will Smith was written by the creator of 'The Borowitz Report'.
+Joseph Marcell co-starred in the TV show with Will Smith.
+Will Smith starred in a TV show.
+    
+MULTI-HOP CLAIM: The actor who played Colonel Sherman T. Potter in 'M*A*S*H' played Seldom Jackson in 'Kentucky Jones'.
+DECOMPOSED CLAIMS: An actor played Colonel Sherman T. Potter in 'M*A*S*H'.
+An actor played Seldom Jackson in 'Kentucky Jones.'
+
+MULTI-HOP CLAIM: The producer of Future Profits is a male. So is Park Jimin's and Jae's co-host of After School Club.
+DECOMPOSED CLAIMS: The producer of Future Profits is a male.
+Park Jimin and Jae co-host After School Club.
+The co-host of After School Club, alongside Park Jimin and Jae, is a male.
+
+MULTI-HOP CLAIM: Joe Seiders from Taylor Locke and the Roughs was also in another band. This band and Kings of Leon are not both American rock bands.
+DECOMPOSED CLAIMS: Joe Seiders was a member of Taylor Locke and the Roughs.
+The Taylor Locke and the Roughs band member Joe Seiders was also a member of another band.
+One of the bands Joe Seiders was a member of is not an American rock band.
+
+MULTI-HOP CLAIM: Gerald B. Lefcourt was a featured personality in a documentary. The character portrayed in in that documerntary is a real-life informal adviser to the White House in cybersecurity.
+DECOMPOSED CLAIMS: Gerald B. Lefcourt was featured in a documentary.
+The documentary featuring Gerald B. Lefcourt portrays a character who is a real-life informal adviser to the White House in cybersecurity.
+###
+
+MULTI-HOP CLAIM: {claim}
+DECOMPOSED CLAIMS:"""
+
+decompose_9shot_noinstruct = """<s>
+MULTI-HOP CLAIM: Ian Hunter from Mott the Hoople was born before the band member that released the album Dixie Chicken. That band member had the song 'Ride Like the Wind' dedicated to him.
+DECOMPOSED CLAIMS: Ian Hunter was a member of Mott the Hoople.
+Ian Hunter was born before the band member who released the album "Dixie Chicken."
+The song "Ride Like the Wind" was dedicated to the band member who released the album "Dixie Chicken."
+
+MULTI-HOP CLAIM: The defending champion of the 1979 Romika Cup - Singles and another tennis player are both tennis players. The other tennis player was defending champion at the 1994 Waldbaum's Hamlet Cup.
+DECOMPOSED CLAIMS: The 1979 Romika Cup - Singles had a defending champion who is a tennis player.
+The 1994 Waldbaum's Hamlet Cup had a defending champion who is a tennis player.
+
+MULTI-HOP CLAIM: The movie '100 Million BC' continues the urban myth of an experiment allegedly carried out at the Philadelphia Naval Shipyard.
+DECOMPOSED CLAIMS: The movie '100 Million BC' is based on or references an urban myth experiment.
+An urban myth experiment was allegedly carried out at the Philadelphia Naval Shipyard
+
+MULTI-HOP CLAIM: T the band Comeback Kid took their name form a headline about the current NHL team owner who played for the team that won the Stanley cup in 1992.
+DECOMPOSED CLAIMS: The band Comeback Kid took their name from a headline.
+The headline related to the name "Comeback Kid" involves an NHL team owner.
+The NHL team owner associated with "Comeback Kid" was a former player for the NHL team that won the Stanley cup in 1992.
+
+MULTI-HOP CLAIM: The TV show starring Will Smith was written by the creator of 'The Borowitz Report'. This show also starred Joseph Marcell.",
+DECOMPOSED CLAIMS: The TV show starring Will Smith was written by the creator of 'The Borowitz Report'.
+Joseph Marcell co-starred in the TV show with Will Smith.
+Will Smith starred in a TV show.
+    
+MULTI-HOP CLAIM: The actor who played Colonel Sherman T. Potter in 'M*A*S*H' played Seldom Jackson in 'Kentucky Jones'.
+DECOMPOSED CLAIMS: An actor played Colonel Sherman T. Potter in 'M*A*S*H'.
+An actor played Seldom Jackson in 'Kentucky Jones.'
+
+MULTI-HOP CLAIM: The producer of Future Profits is a male. So is Park Jimin's and Jae's co-host of After School Club.
+DECOMPOSED CLAIMS: The producer of Future Profits is a male.
+Park Jimin and Jae co-host After School Club.
+The co-host of After School Club, alongside Park Jimin and Jae, is a male.
+
+MULTI-HOP CLAIM: Joe Seiders from Taylor Locke and the Roughs was also in another band. This band and Kings of Leon are not both American rock bands.
+DECOMPOSED CLAIMS: Joe Seiders was a member of Taylor Locke and the Roughs.
+The Taylor Locke and the Roughs band member Joe Seiders was also a member of another band.
+One of the bands Joe Seiders was a member of is not an American rock band.
+
+MULTI-HOP CLAIM: Gerald B. Lefcourt was a featured personality in a documentary. The character portrayed in in that documerntary is a real-life informal adviser to the White House in cybersecurity.
+DECOMPOSED CLAIMS: Gerald B. Lefcourt was featured in a documentary.
+The documentary featuring Gerald B. Lefcourt portrays a character who is a real-life informal adviser to the White House in cybersecurity.
+
+MULTI-HOP CLAIM: {claim}
+DECOMPOSED CLAIMS:"""
+
+
+decompose_6_2 = """<s>
+MULTI-HOP CLAIM: Ian Hunter from Mott the Hoople was born before the band member that released the album Dixie Chicken. That band member had the song 'Ride Like the Wind' dedicated to him.
+DECOMPOSED CLAIMS: Ian Hunter was a member of Mott the Hoople.
+Ian Hunter was born before the band member who released the album "Dixie Chicken."
+The song "Ride Like the Wind" was dedicated to the band member who released the album "Dixie Chicken."
+
+MULTI-HOP CLAIM: The defending champion of the 1979 Romika Cup - Singles and another tennis player are both tennis players. The other tennis player was defending champion at the 1994 Waldbaum's Hamlet Cup.
+DECOMPOSED CLAIMS: The 1979 Romika Cup - Singles had a defending champion who is a tennis player.
+The 1994 Waldbaum's Hamlet Cup had a defending champion who is a tennis player.
+
+MULTI-HOP CLAIM: The movie '100 Million BC' continues the urban myth of an experiment allegedly carried out at the Philadelphia Naval Shipyard.
+DECOMPOSED CLAIMS: The movie '100 Million BC' is based on or references an urban myth experiment.
+An urban myth experiment was allegedly carried out at the Philadelphia Naval Shipyard
+
+MULTI-HOP CLAIM: T the band Comeback Kid took their name form a headline about the current NHL team owner who played for the team that won the Stanley cup in 1992.
+DECOMPOSED CLAIMS: The band Comeback Kid took their name from a headline.
+The headline related to the name "Comeback Kid" involves an NHL team owner.
+The NHL team owner associated with "Comeback Kid" was a former player for the NHL team that won the Stanley cup in 1992.
+
+MULTI-HOP CLAIM: The actor who played Colonel Sherman T. Potter in 'M*A*S*H' played Seldom Jackson in 'Kentucky Jones'.
+DECOMPOSED CLAIMS: An actor played Colonel Sherman T. Potter in 'M*A*S*H'.
+An actor played Seldom Jackson in 'Kentucky Jones.'
+
+MULTI-HOP CLAIM: The producer of Future Profits is a male. So is Park Jimin's and Jae's co-host of After School Club.
+DECOMPOSED CLAIMS: The producer of Future Profits is a male.
+Park Jimin and Jae co-host After School Club.
+The co-host of After School Club is a male.
+
+MULTI-HOP CLAIM: {claim}
+DECOMPOSED CLAIMS:"""
+
+
+decompose_6_3 = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, your goal is to decompose it down into simpler, standalone claims.
+Each decomposed claim should:
+
+1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
+2. Isolate Key Concepts and Relationships: Highlight main subjects, actions, and notable attributes to ensure the vectors generated from these claims closely align with those of potential matching documents.
+3. Ensure Standalone Validity: Each claim must be understandable and searchable without reference to other claims, containing all necessary information for retrieval.
+4. Optimize for Vector Similarity: Use language and terms that are expected to generate vectors similar to those of the target documents, enhancing the likelihood of a match.
+5. NOT ADD ANY INFORMATION, WHICH IS NOT PRESENT IN THE multi-hop claim, ONLY USE INFORMATION GIVEN IN THE multi-hop claim.
+6. Be separated with a newline.
+
+Here are nine examples, followed by the MULTI-HOP CLAIM you have to decompose.
+[/INST]
+###
+MULTI-HOP CLAIM: Ian Hunter from Mott the Hoople was born before the band member that released the album Dixie Chicken. That band member had the song 'Ride Like the Wind' dedicated to him.
+DECOMPOSED CLAIMS: Ian Hunter was a member of Mott the Hoople.
+Ian Hunter was born before the band member who released the album "Dixie Chicken."
+The song "Ride Like the Wind" was dedicated to the band member who released the album "Dixie Chicken."
+
+MULTI-HOP CLAIM: The defending champion of the 1979 Romika Cup - Singles and another tennis player are both tennis players. The other tennis player was defending champion at the 1994 Waldbaum's Hamlet Cup.
+DECOMPOSED CLAIMS: The 1979 Romika Cup - Singles had a defending champion who is a tennis player.
+The 1994 Waldbaum's Hamlet Cup had a defending champion who is a tennis player.
+
+MULTI-HOP CLAIM: The movie '100 Million BC' continues the urban myth of an experiment allegedly carried out at the Philadelphia Naval Shipyard.
+DECOMPOSED CLAIMS: The movie '100 Million BC' is based on or references an urban myth experiment.
+An urban myth experiment was allegedly carried out at the Philadelphia Naval Shipyard
+
+MULTI-HOP CLAIM: T the band Comeback Kid took their name form a headline about the current NHL team owner who played for the team that won the Stanley cup in 1992.
+DECOMPOSED CLAIMS: The band Comeback Kid took their name from a headline.
+The headline related to the name "Comeback Kid" involves an NHL team owner.
+The NHL team owner associated with "Comeback Kid" was a former player for the NHL team that won the Stanley cup in 1992.
+
+MULTI-HOP CLAIM: The actor who played Colonel Sherman T. Potter in 'M*A*S*H' played Seldom Jackson in 'Kentucky Jones'.
+DECOMPOSED CLAIMS: An actor played Colonel Sherman T. Potter in 'M*A*S*H'.
+An actor played Seldom Jackson in 'Kentucky Jones.'
+
+MULTI-HOP CLAIM: The producer of Future Profits is a male. So is Park Jimin's and Jae's co-host of After School Club.
+DECOMPOSED CLAIMS: The producer of Future Profits is a male.
+Park Jimin and Jae co-host After School Club.
+The co-host of After School Club is a male.
+###
+
+MULTI-HOP CLAIM: {claim}
+DECOMPOSED CLAIMS:"""
+
+decompose_add_context = """
+
+
+
+
+
+"""

@@ -1,4 +1,5 @@
 import sqlite3
+import unicodedata
 
 def connect_to_db(db_path = '../data/wiki_wo_links.db'):
     conn = sqlite3.connect(db_path)
@@ -23,3 +24,13 @@ def get_doc_by_title(cursor, title):
     cursor.execute("SELECT * FROM documents WHERE id=?", (title,))
     output = cursor.fetchone()
     return output
+
+def get_db_column_names(cursor):
+    cursor.execute("PRAGMA table_info('documents');")
+    columns = cursor.fetchall()
+    return columns
+
+def get_text_from_doc(cursor, title):
+    doc = cursor.execute("SELECT text FROM documents WHERE id = ?",
+                   (unicodedata.normalize("NFD", title),)).fetchall()[0][0]
+    return doc
