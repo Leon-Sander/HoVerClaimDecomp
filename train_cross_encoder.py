@@ -55,20 +55,20 @@ class TextClassificationModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         input_ids, attention_mask, labels = batch
         outputs = self(input_ids, attention_mask, labels)
-        loss = outputs[0]
+        loss = outputs.loss
         self.log('train_loss', loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         input_ids, attention_mask, labels = batch
         outputs = self(input_ids, attention_mask, labels)
-        val_loss = outputs[0]
+        val_loss = outputs.loss
         self.log('val_loss', val_loss, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         input_ids, attention_mask, labels = batch
         outputs = self(input_ids, attention_mask, labels)
-        test_loss = outputs[0]
+        test_loss = outputs.loss
         self.log('test_loss', test_loss, prog_bar=True)
 
     def configure_optimizers(self):
@@ -114,6 +114,20 @@ class TextClassificationModel(pl.LightningModule):
 
 def create_tensor_dataset():
     data = load_obj("cross_encoder_claim_sentence_label_pairs.json")
+    """ data bsp:
+    [
+        [
+            "Skagen Painter Peder Severin Kr\u00f8yer favored naturalism along with Theodor Esbern Philipsen and the artist Ossian Elgstr\u00f6m studied with in the early 1900s.",
+            "Peder Henrik Kristian Zahrtmann, known as Kristian Zahrtmann, (31 March 1843 \u2013 22 June 1917) was a Danish painter.",
+            1
+        ],
+        [
+            "Skagen Painter Peder Severin Kr\u00f8yer favored naturalism along with Theodor Esbern Philipsen and the artist Ossian Elgstr\u00f6m studied with in the early 1900s.",
+            "Kr\u00f8yer was the unofficial leader of the group.",
+            0
+        ],
+    ]
+    """
     random.shuffle(data)
     #tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
