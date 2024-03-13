@@ -16,23 +16,34 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from datetime import datetime
 import torch.nn.functional as F
-
+from torch.utils.data import Subset
+import torchmetrics
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, dataset, batch_size=32):
+    def __init__(self, dataset, batch_size=64):
         super().__init__()
         self.dataset = dataset
         self.batch_size = batch_size
         self.setup()
 
     def setup(self, stage=None):
+        dataset_size = len(self.dataset)
         train_size = int(0.8 * len(self.dataset))
         val_size = int(0.1 * len(self.dataset))
         test_size = len(self.dataset) - train_size - val_size
-        self.train_dataset, self.val_dataset, self.test_dataset = random_split(self.dataset, [train_size, val_size, test_size])
+        #self.train_dataset, self.val_dataset, self.test_dataset = random_split(self.dataset, [train_size, val_size, test_size])
+        indices = torch.randperm(dataset_size).tolist()  # Zufällige Permutation aller Indizes
+
+        train_indices = indices[:train_size]
+        val_indices = indices[train_size:train_size+val_size]
+        test_indices = indices[train_size+val_size:]
+
+        self.train_dataset = Subset(self.dataset, train_indices)
+        self.val_dataset = Subset(self.dataset, val_indices)
+        self.test_dataset = Subset(self.dataset, test_indices)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=20)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True,num_workers=20)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size,num_workers=20)
@@ -47,32 +58,44 @@ class TextClassificationModel(pl.LightningModule):
         #self.model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
         self.model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.train_accuracy = torchmetrics.classification.BinaryAccuracy()
+        self.val_accuracy = torchmetrics.classification.BinaryAccuracy()
+        self.test_accuracy = torchmetrics.classification.BinaryAccuracy()
 
-    def forward(self, input_ids, attention_mask, labels=None):
-        output = self.model(input_ids, attention_mask=attention_mask, labels=labels)
+    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+        output = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, labels=labels)
         return output
-
+    
     def training_step(self, batch, batch_idx):
-        input_ids, attention_mask, labels = batch
-        outputs = self(input_ids, attention_mask, labels)
+        input_ids, attention_mask, token_type_ids, labels = batch
+        outputs = self(input_ids, attention_mask, token_type_ids, labels=labels)
         loss = outputs.loss
+        preds = torch.argmax(outputs.logits, dim=1)
+        self.train_accuracy.update(preds, labels)
         self.log('train_loss', loss, prog_bar=True)
+        self.log('train_accuracy', self.train_accuracy, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        input_ids, attention_mask, labels = batch
-        outputs = self(input_ids, attention_mask, labels)
+        input_ids, attention_mask, token_type_ids, labels = batch
+        outputs = self(input_ids, attention_mask, token_type_ids, labels=labels)
         val_loss = outputs.loss
+        preds = torch.argmax(outputs.logits, dim=1)
+        self.val_accuracy.update(preds, labels)
         self.log('val_loss', val_loss, prog_bar=True)
+        self.log('val_accuracy', self.val_accuracy, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
-        input_ids, attention_mask, labels = batch
-        outputs = self(input_ids, attention_mask, labels)
+        input_ids, attention_mask, token_type_ids, labels = batch
+        outputs = self(input_ids, attention_mask, token_type_ids, labels=labels)
         test_loss = outputs.loss
+        preds = torch.argmax(outputs.logits, dim=1)
+        self.test_accuracy.update(preds, labels)
         self.log('test_loss', test_loss, prog_bar=True)
+        self.log('test_accuracy', self.test_accuracy, prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)# 
         lr_scheduler = {
             "scheduler": ReduceLROnPlateau(
                 optimizer, mode="min", factor=0.5, patience=10, verbose=True
@@ -82,86 +105,52 @@ class TextClassificationModel(pl.LightningModule):
             "frequency": 1,
         }
         return [optimizer], [lr_scheduler]
-    
-    def predict(self, sentence_pairs):
-        self.model.eval()
-        predictions = []
-
-        for sentence1, sentence2 in sentence_pairs:
-            inputs = self.tokenizer.encode_plus(
-                sentence1, sentence2,
-                add_special_tokens=True,
-                max_length=256,
-                padding='max_length',
-                truncation=True,
-                return_attention_mask=True,
-                return_tensors='pt'
-            )
-
-            input_ids = inputs['input_ids'].to(self.device)
-            attention_mask = inputs['attention_mask'].to(self.device)
-
-            with torch.no_grad():
-                outputs = self.model(input_ids, attention_mask=attention_mask)
-                logits = outputs.logits
-                probs = F.softmax(logits, dim=1)
-                score = probs[:, 1]  
-                predictions.append(score)
-
-        predictions = torch.cat(predictions).tolist()
-        return predictions
 
 
 def create_tensor_dataset():
-    data = load_obj("cross_encoder_claim_sentence_label_pairs.json")
-    """ data bsp:
-    [
-        [
-            "Skagen Painter Peder Severin Kr\u00f8yer favored naturalism along with Theodor Esbern Philipsen and the artist Ossian Elgstr\u00f6m studied with in the early 1900s.",
-            "Peder Henrik Kristian Zahrtmann, known as Kristian Zahrtmann, (31 March 1843 \u2013 22 June 1917) was a Danish painter.",
-            1
-        ],
-        [
-            "Skagen Painter Peder Severin Kr\u00f8yer favored naturalism along with Theodor Esbern Philipsen and the artist Ossian Elgstr\u00f6m studied with in the early 1900s.",
-            "Kr\u00f8yer was the unofficial leader of the group.",
-            0
-        ],
-    ]
-    """
-    random.shuffle(data)
-    #tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+    data = load_obj("cross_encoder_claim_title_sentence_label_pairs.json")
+    #random.shuffle(data)
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    
     print("creating data")
     input_ids = []
     attention_masks = []
+    token_type_ids = []
     labels = []
+
     for claim, sentence, label in tqdm(data):
-        labels.append(label)
         encoded_dict = tokenizer.encode_plus(
-            claim + " " + sentence,
+            text=claim,
+            text_pair=sentence,
             add_special_tokens=True,
-            max_length=256,
+            max_length=512,
             padding='max_length',
             truncation=True,
             return_attention_mask=True,
+            return_token_type_ids=True,
             return_tensors='pt',
         )
+
         input_ids.append(encoded_dict['input_ids'])
         attention_masks.append(encoded_dict['attention_mask'])
+        token_type_ids.append(encoded_dict['token_type_ids'])
+        labels.append(label)
 
     input_ids = torch.cat(input_ids, dim=0)
     attention_masks = torch.cat(attention_masks, dim=0)
+    token_type_ids = torch.cat(token_type_ids, dim=0)
     labels = torch.tensor(labels)
-    dataset = TensorDataset(input_ids, attention_masks, labels)
+
+    dataset = TensorDataset(input_ids, attention_masks, token_type_ids, labels)
     return dataset
 
 
 if __name__ == "__main__":
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    logger = TensorBoardLogger("tb_logs", name=f"cnn_{timestamp}")
+    logger = TensorBoardLogger("tb_logs", name=f"cross_enc_{timestamp}")
     early_stopping_callback = EarlyStopping(
-        monitor="val_loss", patience=20, verbose=True, mode="min"
+        monitor="val_loss", patience=10, verbose=True, mode="min"
     )
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
