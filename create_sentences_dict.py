@@ -2,6 +2,7 @@ from CoreNLP_sentence_splitter.sentence_splitter_wrapper_for_CoreNLP_En import c
 from utils import *
 from db_operations import *
 from tqdm import tqdm
+import random
 
 def create_sentences_dict():
     conn, cursor = connect_to_db()
@@ -33,17 +34,25 @@ def create_claim_text_label_pairs():
         for title, sentence_level in item["supporting_facts"]:
             claim_and_supporting_facts[item["claim"]][title].append(sentence_level)
 
-    train_data =  []
+    balanced_train_data =  []
     for claim, title_pairs in claim_and_supporting_facts.items():
+        positive_samples = []
+        negative_samples = []
         for title, sentence_level_list in title_pairs.items():  
             for i, sentence in enumerate(sentences_dict[title]):
                 if i in sentence_level_list:
-                    label = 1
+                    positive_samples.append((claim, title + " " + sentence, 1))
                 else:
-                    label = 0
-                train_data.append((claim,sentence,label))
-    return train_data
+                    negative_samples.append((claim, title + " " + sentence, 0))
+        
+        num_positive = len(positive_samples)
+        negative_samples = random.sample(negative_samples, min(num_positive, len(negative_samples)))
+        positive_samples = random.sample(positive_samples, min(len(negative_samples), num_positive))
+        # Füge die ausgewählten Beispiele zum Trainingsdatensatz hinzu
+        balanced_train_data.extend(positive_samples)
+        balanced_train_data.extend(negative_samples)
+    return balanced_train_data
 
 if __name__ == "__main__":
     train_data = create_claim_text_label_pairs()
-    save_obj(train_data, "cross_encoder_claim_sentence_label_pairs.json")
+    save_obj(train_data, "cross_encoder_claim_title_sentence_label_pairs2.json")
