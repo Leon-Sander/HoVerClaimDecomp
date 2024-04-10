@@ -5,10 +5,10 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path("./cross_encoder").resolve()))
 from cross_encoder.model import TextClassificationModel
-from huggingface_llm_loading import TransformerLLM, DecomposedClaimsOutputParser, EnhancedClaimsOutputParser, create_chain, create_llm_pipeline, create_prompt
+from huggingface_llm_loading import TransformerLLM, create_chain, create_llm_pipeline, create_prompt, create_chain_with_postprocessor
 from prompt_templates import add_context_prompt
 from custom_mistral_embedder import CustomMistralEmbedder
-
+from output_parsers import EnhancedBaseClaimsOutputParser
 from utils import load_obj, load_vectordb, save_obj
 from tqdm import tqdm
 
@@ -26,10 +26,11 @@ save_obj(data, "data/iteration_base.json")
 
 
 model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"
-llm = create_chain(create_prompt(template=add_context_prompt), 
+llm = create_chain_with_postprocessor(create_prompt(template=add_context_prompt), 
                         create_llm_pipeline(model_id=model_id,
                                         device_map="cuda:0", load_in_8bit=False, load_in_4bit=True),
-                        stop=["CONTEXT:", "CLAIM:"])
+                        stop=["CONTEXT:", "CLAIM:"], 
+                        postprocessor=EnhancedBaseClaimsOutputParser)
 
 #llm = TransformerLLM(model_id = "mistralai/Mixtral-8x7B-Instruct-v0.1", prompt_template= add_context_prompt, postprocessor=EnhancedClaimsOutputParser)
 print("llm Loaded")
@@ -48,7 +49,7 @@ print("Embeder and Vector Db loaded")
 for run_count in tqdm(range(5)):
     for hop_count in data:
         if run_count <= int(hop_count):
-            # somit hop_count+1 Iterationen
+            # somit hop_count+1 retrievals, einmal mit base claim, n mal mit hop count claims
             for key in data[hop_count]:
                 claims_and_context = []
                 for item in data[hop_count][key]:
