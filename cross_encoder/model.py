@@ -1,12 +1,13 @@
 from transformers import RobertaTokenizer, RobertaForSequenceClassification,BertTokenizer, BertForSequenceClassification
 from torchmetrics.classification import BinaryAccuracy, BinaryPrecision, BinaryRecall
+from create_sentences_dict import ClaimSentencePairsCreator
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import pytorch_lightning as pl
 import torch
 
 
 class TextClassificationModel(pl.LightningModule):
-    def __init__(self, model_name):
+    def __init__(self, model_name, mode="train", **kwargs):
         super().__init__()
         self.model_name = model_name
         if self.model_name.startswith('roberta'):
@@ -28,6 +29,12 @@ class TextClassificationModel(pl.LightningModule):
         self.val_recall = BinaryRecall()
         self.test_recall = BinaryRecall()
 
+        if mode == "predict":
+            self.model.eval()
+            with_title = True
+            if kwargs is not None:
+                with_title = kwargs["with_title"]
+            self.claim_sentence_creator = ClaimSentencePairsCreator(sql_db_path = '/home/sander/code/thesis/hover/data/wiki_wo_links.db', with_title = with_title)
 
     def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
         if self.model_name.startswith('roberta'):
@@ -82,7 +89,7 @@ class TextClassificationModel(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         lr_scheduler = {
             "scheduler": ReduceLROnPlateau(
-                optimizer, mode="min", factor=0.5, patience=10, verbose=True
+                optimizer, mode="min", factor=0.5, patience=3, verbose=True
             ),
             "monitor": "val_loss",
             "interval": "epoch",
@@ -90,8 +97,8 @@ class TextClassificationModel(pl.LightningModule):
         }
         return [optimizer], [lr_scheduler]
     
-    def predict(self, claim_text_pairs):
-        self.model.eval()
+    def predict(self, claim_text_pairs, return_probabilties=True):
+        #self.model.eval()
         predictions = []
 
         with torch.no_grad():
@@ -116,8 +123,11 @@ class TextClassificationModel(pl.LightningModule):
                 outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 
                 probs = torch.sigmoid(outputs.logits).squeeze()
-
-                predicted_label = (probs > 0.5).long().cpu().numpy()
-                predictions.append((claim, text, predicted_label))
+                if return_probabilties:
+                    probabilities = probs.cpu().numpy().tolist()
+                    predictions.append((claim, text, probabilities[1]))
+                else:
+                    predicted_label = (probs > 0.5).long().cpu().numpy().tolist()
+                    predictions.append((claim, text, predicted_label[1]))
 
         return predictions
