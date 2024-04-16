@@ -165,9 +165,8 @@ Each decomposed claim should:
 1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
 2. Isolate Key Concepts and Relationships: Highlight main subjects, actions, and notable attributes to ensure the vectors generated from these claims closely align with those of potential matching documents.
 3. Ensure Standalone Validity: Each claim must be understandable and searchable without reference to other claims, containing all necessary information for retrieval.
-4. Optimize for Vector Similarity: Use language and terms that are expected to generate vectors similar to those of the target documents, enhancing the likelihood of a match.
-5. NOT ADD ANY INFORMATION, WHICH IS NOT PRESENT IN THE multi-hop claim, ONLY USE INFORMATION GIVEN IN THE multi-hop claim.
-6. Be separated with a newline.
+4. NOT ADD ANY INFORMATION, WHICH IS NOT PRESENT IN THE multi-hop claim, ONLY USE INFORMATION GIVEN IN THE multi-hop claim.
+5. Be separated with a newline.
 
 Here are nine examples, followed by the MULTI-HOP CLAIM you have to decompose.
 [/INST]
@@ -408,3 +407,76 @@ ENHANCED CLAIM: Summer Wars,' directed by Mamoru Hosoda and animated by Madhouse
 CONTEXT: {context}
 CLAIM: {claim}
 ENHANCED CLAIM:"""
+
+
+sub_question_prompt = """<s> [INST] In a multi-hop information retrieval scenario, generate questions from a claim to identify and explore every key entity, particularly focusing on those that are not directly mentioned but implied. These questions should help in finding respective documents for each entity discussed in the claim.
+1. Direct Identification: Formulate questions that directly identify each entity mentioned in the claim to gather specific information about them.
+2. Infer Hidden Entities: Create questions aimed at uncovering entities that are implied or indirectly referenced in the claim. These are often crucial for understanding the full context and connections.
+3. Cover All Aspects: Ensure your questions collectively address all parts of the claim, enabling a comprehensive retrieval of information across all related entities.
+4. Prioritize Clarity: Questions should be clear and to the point, facilitating the retrieval of relevant documents without ambiguity.[/INST]
+###
+CLAIM: The play by an award-winning American actor with an accomplished playwright premiere where it broke box office records and garnered critical acclaim was performed by the Portland Stage Company.
+QUESTIONS: What is the name of the play performed by the Portland Stage Company that broke box office records and received critical acclaim?\nWho is the award-winning American actor involved in the play that premiered at the Portland Stage Company?
+
+CLAIM: The musician that signed Godhead (band) to their label and another singer are both American singer, songwriters. Second Hand Life is the tenth solo studio album by this other singer.
+QUESTIONS: Who is the musician that signed the band Godhead to their label?\nWhich American singer and songwriter released 'Second Hand Life' as their tenth solo studio album?
+
+CLAIM: Of the two films, Summer Wars and The Secret of Kells, the 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+QUESTIONS: Which film did Mike McFarland voice in, Summer Wars or The Secret of Kells?\nIs 'The Secret of Kells' a stop-motion animated film, and what is its country of origin?\nIn what year was the film Summer Wars released?
+
+CLAIM: The Lusty Men is a western directed by this man. He and the writer of America America are both actors and directors.
+QUESTIONS: Who directed the western film 'The Lusty Men'?\nWho is the writer and director of 'America America'?
+
+CLAIM: The actress that starred as a parent in Sky High (2005 film) is married to one of the subjects of film-critic Nigel Andrews' books. She also starred in a 1994 film about a pregnant woman who is stranded at a trading post during the American Civil War.
+QUESTIONS: Who is the actress that played a parent in the 2005 film 'Sky High'?\nWhich film critic Nigel Andrews wrote a book about, and who is the subject of that book married to the actress from 'Sky High'?\nWhat is the name of the 1994 film in which the 'Sky High' actress starred as a pregnant woman stranded at a trading post during the American Civil War?
+
+CLAIM: Dana White is the president of the organization that Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+QUESTIONS: What organization is Dana White the president of, where Forrest Griffin and Stephan Bonnar had their famous fight?\nWhich fight between Forrest Griffin and Stephan Bonnar is often referred to as one of the greatest bar fights in history?
+
+CLAIM: Hey Monday was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010' alongside The Cab discography and Never Shout Never.
+QUESTIONS: How are The Cab discography and Never Shout Never related to Hey Monday in the context of music and publications?\nWhat is the significance of the '100 Bands You Need to Know in 2010' list where Hey Monday, The Cab, and Never Shout Never were mentioned?
+
+CLAIM: A species related to Xanthosoma and Coronilla are both flowering plants.
+QUESTIONS: Which species is related to Xanthosoma and is a flowering plant?\nIs Coronilla a flowering plant?
+
+CLAIM: Grigori Vasilyevich Aleksandrov was a prominent director who worked frequently with the composer of Moya Moskva.
+QUESTIONS: Who was Grigori Vasilyevich Aleksandrov?\nWhich composer worked frequently with Grigori Vasilyevich Aleksandrov and composed 'Moya Moskva'?
+###
+CLAIM: {claim}
+QUESTIONS:"""
+
+add_key_entities_prompt = """<s> [INST] Your task is to refine a multi-hop claim using provided context information, which includes sentences and titles. 
+Aim to enrich the claim with specific details that are crucial for understanding the claim's full meaning and implications.
+Important: Not all context is relevant and it might happen that none of the context sentences are relevant, in which case you should not add any information and just return the original claim.
+Each enhanced claim should:
+1. Identify and Integrate Key Information: Look for names, dates, and locations in the context that directly relate to the claim. Focus on embedding this information to make the claim more detailed and informative.
+2. Preserve the Essence of the Claim: Ensure that the enhanced claim remains true to the original message. It should provide a fuller picture without changing the fundamental intent of the claim.
+3. Be Concise and Focused: While adding depth, keep the enhancement clear and to the point. Avoid inserting extraneous or speculative details.
+4. Identify Inferred Entities: Focus on entities that are indirectly referenced or can be deduced from the claim's context to fully understand its narrative and implications.
+5. Accuracy is Key: Ensure all added details are factually correct and supported by the context provided. Do not fabricate or assume information not present in the context.
+[/INST]
+###
+CONTEXT: 'Almost, Maine It premiered at the Portland Stage Company in Portland, Maine in 2004 where it broke box office records and garnered critical acclaim.\nThe Gin Game The Gin Game is a two-person, two-act play by Donald L. Coburn that premiered at American Theater Arts in Hollywood in September 1976, directed by Kip Niven.\nThe Patriots (play) The Patriots is an award-winning play written in a prologue and three acts by Sidney Kingsley in 1943.\nThe Last Days of Judas Iscariot The Last Days of Judas Iscariot is a play by American playwright Stephen Adly Guirgis first staged Off-Broadway at The Public Theater on March 2, 2005 directed by Philip Seymour Hoffman.\nTopdog/Underdog Topdog/Underdog is a play by American playwright Suzan-Lori Parks which premiered in 2001 off-Broadway in New York City.\nCollected Stories (play) Collected Stories is a play by Donald Margulies which premiered at South Coast Repertory in 1996, and was presented on Broadway in 2010.\nThe Iceman Cometh First published in 1946, the play premiered on Broadway at the Martin Beck Theatre on October 9, 1946, directed by Eddie Dowling, where it ran for 136 performances before closing on March 15, 1947.\nJason Wells (playwright) Jason Wells (born 1960) is an American actor and award-winning playwright.\nHal Holbrook He first received critical acclaim in 1954 for a one-man stage show he developed while studying at Denison University, performing as Mark Twain.\nWonder of the World (play) Wonder of the World is a play by American playwright David Lindsay-Abaire.'
+CLAIM: The play by an award-winning American actor with an accomplished playwright premiere where it broke box office records and garnered critical acclaim was performed by the Portland Stage Company.
+ENHANCED CLAIM: The play 'Almost, Maine,' premiered by the Portland Stage Company in 2004, was a collaboration between an award-winning American actor and an accomplished playwright, breaking box office records and garnering critical acclaim.
+
+CONTEXT: Jimmy Urine James Euringer (born September 7, 1969), known professionally as Jimmy Urine, is an American singer, songwriter, and musician.\nTommy Henriksen Tommy Henriksen (born February 21, 1964) is an American musician from Port Jefferson, New York best known for his work as a guitarist, bassist and songwriter with Alice Cooper, the Hollywood Vampires and German metal band Warlock.\nOzzy Osbourne John Michael "Ozzy" Osbourne (born 3 December 1948) is an English singer, songwriter, and actor.\nYou Gotta Sin to Get Saved You Gotta Sin to Get Saved is the second album by American singer-songwriter Maria McKee, released in 1993 (see 1993 in music).\nScott Stapp Anthony Scott Flippen (born August 8, 1973), also known as Scott Stapp, is an American singer, songwriter, and musician, known as the lead vocalist and lyricist of rock bands Creed and Art of Anarchy.\nBret Michaels Bret Michael Sychak (born March 15, 1963), professionally known as Bret Michaels, is an American singer-songwriter and musician.\nMichael Gira Michael Rolfe Gira ( ; born February 19, 1954) is an American singer-songwriter, musician, author and artist.\nSecond Hand Life Second Hand Life is the tenth solo studio album by Joe Lynn Turner.\nMarilyn Manson Brian Hugh Warner (born January 5, 1969), known professionally as Marilyn Manson, is an American singer, songwriter, musician, composer, actor, painter, author and former music journalist.\nCorey Taylor Corey Todd Taylor (born December 8, 1973) is an American musician, singer, songwriter, actor, and author, best known as the lead singer and lyricist of the American heavy metal band Slipknot and the American alternative metal band Stone Sour.
+CLAIM: The musician that signed Godhead (band) to their label and another singer are both American singer, songwriters. Second Hand Life is the tenth solo studio album by this other singer.
+ENHANCED CLAIM: The musician that signed Godhead (band) to their label and Joe Lynn Turner are both American singer, songwriters. Second Hand Life Second Hand Life is the tenth solo studio album by Joe Lynn Turner.
+
+CONTEXT: 'Gamblers' Ballet "Cardinal Knowledge" was used as the outro music for the Cartoon Saloon, Oscar nominated animation "The Secret of Kells", and "Dúisigí" and "Cabhraigí Léi" were used in the Japanese film "Kadokawa", which was directed by Ryuichi Hiroki.\nFabrice Ziolkowski Fabrice Ziolkowski (born January 28, 1954) is a French-American screenwriter, director, producer, and voice director, best known for scripting the Oscar-nominated feature animation film "The Secret of Kells", writing the animated television series "Gawayn", and directing and producing the avant-garde documentary film "L.A.X.".\nThe Secret of Kells The Secret of Kells is a 2009 French-Belgian-Irish animated fantasy film animated by Cartoon Saloon that premiered on 8 February 2009 at the 59th Berlin International Film Festival.\nArrietty Arrietty, titled The Borrower Arrietty (Japanese: 借りぐらしのアリエッティ , Hepburn: Kari-gurashi no Arietti ) in Japan and The Secret World of Arrietty in North America, is a 2010 Japanese animated fantasy film produced by Studio Ghibli and directed by Hiromasa Yonebayashi as his feature film debut as a director.\nMadame Tutli-Putli Madame Tutli-Putli is a 2007 stop motion-animated short film by Montreal filmmakers Chris Lavis and Maciek Szczerbowski, collectively known as Clyde Henry Productions, and produced by the National Film Board of Canada (NFB).\nSteamboy Steamboy (Japanese: スチームボーイ , Hepburn: Suchīmubōi ) is a 2004 Japanese steampunk animated action film produced by Sunrise, directed and co-written by Katsuhiro Otomo, his second major anime release, following "Akira".\nCartoon Saloon The company has also developed the animated film "The Secret of Kells".\nNasu: Summer in Andalusia Nasu: Summer in Andalusia (茄子 アンダルシアの夏 , Nasu: Andarushia no Natsu ) is a 2003 Japanese anime film by Madhouse, directed by Kitarō Kōsaka, the famed animation supervisor of the Oscar-winning anime film "Spirited Away" and "Princess Mononoke" and long-time collaborator of Studio Ghibli, and adapted from a short 3-tankōbon manga by Iō Kuroda, entitled "Nasu", which was serialized in the Afternoon manga magazine.\nEleanor's Secret Eleanor's Secret (original French title Kérity, la maison des contes) is a 2009 Franco-Italian animated feature film directed by Dominique Monféry.\n 'Summer Wars Summer Wars (Japanese: サマーウォーズ , Hepburn: Samā Wōzu ) is a 2009 Japanese animated science fiction film directed by Mamoru Hosoda, animated by Madhouse and distributed by Warner Bros.
+CLAIM: Of the two films, Summer Wars and The Secret of Kells, the 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+ENHANCED CLAIM: Summer Wars is a 2009 Japanese animated science fiction film. 'The Secret of Kells,' a French-Belgian-Irish animated fantasy film, premiered on 8 February 2009. The 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+###
+CONTEXT: {context}
+CLAIM: {claim}
+ENHANCED CLAIM:"""
+
+"""
+Instruction with Correction of Inaccuracies:
+
+    Expand and Correct: Use the context to add details to the claim, focusing on implied entities. Correct any inaccuracies if the context contradicts the claim.
+    Stay Relevant: Ensure added details like names, dates, or locations are directly related to the claim and help clarify it.
+    Keep True to Facts: Modify the claim if necessary to ensure it accurately reflects the context information.
+    Be Concise: Aim for a clear and precise enhancement, avoiding unnecessary elaboration.
+"""

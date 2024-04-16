@@ -3,6 +3,7 @@ from langchain_core.output_parsers.base import BaseOutputParser
 class EnhancedBaseClaimsOutputParser(BaseOutputParser[str]):
     def parse(self, text: str) -> str:
         text = text.replace("\n\n", "")
+        text = text.replace("###", "")
         text = text.lstrip()
         return text
 
@@ -27,16 +28,24 @@ class SimpleTrueFalseParser(BaseOutputParser[str]):
     def _type(self) -> str:
         return "simple_true_false_parser"
 
-class EnhancedClaimsOutputParser(BaseOutputParser[list[str]]):
-    def __init__(self):
-        super().__init__()
-    
+class SubQuestionsOutputParser(BaseOutputParser[str]):
     def parse(self, text: str) -> list[str]:
-        return text.split("ENHANCED CLAIM:")[-1].lstrip()
-    
-    def parse_batch(self, texts: list[str]) -> list[list[str]]:
-        return [self.parse(text) for text in texts]
+        text = text.replace("\n\n", "")
+        text = text.replace("###", "")
+        text = text.lstrip()
+        question_list = text.split("\n")
+        return question_list
 
+    @property
+    def _type(self) -> str:
+        return "Parsing LLM Output into a list of Questions or decomposed claims, can be used for both."
+    
+
+
+
+
+
+# output parsers for transformer models
 class DecomposedClaimsOutputParser(BaseOutputParser[list[str]]):
     def __init__(self):
         super().__init__()
@@ -62,3 +71,14 @@ class DecomposedClaimsOutputParser(BaseOutputParser[list[str]]):
     def dict(self, **kwargs: any) -> dict:
         output_parser_dict = super().dict(**kwargs)
         return output_parser_dict
+    
+
+class EnhancedClaimsOutputParser(BaseOutputParser[list[str]]):
+    def __init__(self):
+        super().__init__()
+    
+    def parse(self, text: str) -> list[str]:
+        return text.split("ENHANCED CLAIM:")[-1].lstrip()
+    
+    def parse_batch(self, texts: list[str]) -> list[list[str]]:
+        return [self.parse(text) for text in texts]

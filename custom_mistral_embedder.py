@@ -24,6 +24,7 @@ class CustomMistralEmbedder(Embeddings):
         self.model.eval()
         self.model.cuda()
         self.task = 'Given a claim, retrieve documents that support or refute the claim'
+        self.question_task = "Given a question, retrieve relevant documents that best answer the question"
         #'Given a multi-hop question, retrieve documents that can help answer the question'
         #'Given a multi-hop claim, retrieve documents that support or refute the claim'
         self.pool_type = "last"

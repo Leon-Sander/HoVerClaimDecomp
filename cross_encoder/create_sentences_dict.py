@@ -76,6 +76,12 @@ class ClaimSentencePairsCreator:
                 claim_sentence_pairs.append((claim, sentence))
         return claim_sentence_pairs
     
+    def create_claim_sentence_pairs_from_sentences(self, claim :str, sentences : list[str]):
+        claim_sentence_pairs = []
+        for sentence in sentences:
+            claim_sentence_pairs.append((claim, sentence))
+        return claim_sentence_pairs
+    
     def filter_sentences(self, claim_sentence_pairs, previous_iteration_sentences):
         """
         Filters the claim_sentence_pairs by removing the pairs that contain a sentence that was already used in the last iteration.
