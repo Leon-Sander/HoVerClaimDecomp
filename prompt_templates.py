@@ -480,3 +480,308 @@ Instruction with Correction of Inaccuracies:
     Keep True to Facts: Modify the claim if necessary to ensure it accurately reflects the context information.
     Be Concise: Aim for a clear and precise enhancement, avoiding unnecessary elaboration.
 """
+
+decompose_entity_based = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, decompose it into simpler, standalone claims that adhere to the following criteria:
+1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
+2. Isolate Key Concepts and Relationships: Highlight the main subjects, actions, and notable attributes to ensure the vectors generated from these claims closely align with those of potential matching documents.
+3. Ensure Standalone Validity: Each claim must be understandable and searchable on its own, containing all necessary information for retrieval.
+4. Avoid Adding Information: Do not include any information that is not present in the original multi-hop claim. Rely solely on the provided content.
+5. Manage Redundancy: If multiple potential decomposed claims involve the same entity or fact, consolidate them into a single claim unless different aspects are critically relevant for separate retrieval paths.
+6. Separate Clearly: Do not use listing and separate each decomposed claim with a newline.
+Here are examples:
+[/INST]
+###
+MULTI-HOP CLAIM: The Lusty Men is a western film directed by Nicholas Ray. He and Elia Kazan, the writer of America America, are both actors and directors.
+DECOMPOSED CLAIMS: The Lusty Men is a western film directed by Nicholas Ray.
+Nicholas Ray is both an actor and a director.
+Elia Kazan wrote the film America America.
+Elia Kazan is both an actor and a director.
+
+MULTI-HOP CLAIM: Sia heavily sampled the song 'Montagues and Capulets' by Sergei O.Prokofieff's grandfather, a Russian composer, for her song 'Taken for Granted.' The song is part of Prokofiev's ballet 'Romeo and Juliet,' which was first performed in 1940. The song 'Party Like a Russian' by Robbie Williams also samples 'Montagues and Capulets.'
+DECOMPOSED CLAIMS: Sia heavily sampled the song 'Montagues and Capulets' for her song 'Taken for Granted.'
+'Montagues and Capulets' was composed by Sergei O. Prokofieff's grandfather, a Russian composer.
+The song 'Montagues and Capulets' is also sampled in Robbie Williams' song 'Party Like a Russian.
+
+MULTI-HOP CLAIM: The musician that signed Godhead (band) to their label, Marilyn Manson, and Joe Lynn Turner are both American singer, songwriters. Second Hand Life Second Hand Life is the tenth solo studio album by Joe Lynn Turner.
+DECOMPOSED CLAIMS: Marilyn Manson signed the band Godhead to their label.
+Marilyn Manson is an American singer and songwriter.
+Joe Lynn Turner is an American singer and songwriter.
+'Second Hand Life' is the tenth solo studio album by Joe Lynn Turner.
+
+MULTI-HOP CLAIM: The Melville suburb in southern Hamilton, New Zealand contains streets named after war heroes including Douglas Melville Charles Guest. Douglas Melville Charles Guest, also known as Douglas Bader, was the subject of the 1956 British biographical film 'Reach for the Sky'. He was a Royal Air Force flying ace during the Second World War.
+DECOMPOSED CLAIMS: The Melville suburb in southern Hamilton, New Zealand, features streets named after war heroes.
+Douglas Melville Charles Guest, also known as Douglas Bader, was a Royal Air Force flying ace during the Second World War.
+Douglas Bader was the subject of the 1956 British biographical film 'Reach for the Sky'.
+One of the streets in Melville suburb is named after Douglas Melville Charles Guest.
+
+MULTI-HOP CLAIM: Channel 8, which has Ong-Art Singlumpong for an executive director, has broadcast the American sports HBO World Championship Boxing that premiered in the early 1970s.
+DECOMPOSED CLAIMS: Channel 8 is a television channel that has Ong-Art Singlumpong as an executive director.
+Channel 8 has broadcast the American sports program HBO World Championship Boxing.
+HBO World Championship Boxing premiered in the early 1970s.
+
+MULTI-HOP CLAIM: The Landsman Kill, a body of water, is near the Dutchess County Fairgrounds and several historical landmarks on New York State Route 308, which intersects State Route 199 at Rock City in the state where billionaire Robert F. Kennedy was a junior senator.
+DECOMPOSED CLAIMS: The Landsman Kill is a body of water near the Dutchess County Fairgrounds.
+The Dutchess County Fairgrounds and several historical landmarks are located on New York State Route 308.
+New York State Route 308 intersects with State Route 199 at Rock City.
+Robert F. Kennedy, a billionaire, was a junior senator in New York state.
+
+MULTI-HOP CLAIM: Kelly Preston, the actress that starred as a parent in Sky High (2005 film), is married to John Travolta, one of the subjects of film-critic Nigel Andrews' books. She also starred in Cheyenne Warrior, a 1994 American film about a pregnant woman who is stranded at a trading post during the American Civil War.
+DECOMPOSED CLAIMS: Kelly Preston starred as a parent in the film Sky High (2005).
+John Travolta is one of the subjects of film-critic Nigel Andrews' books.
+Kelly Preston starred in Cheyenne Warrior, a 1994 American film about a pregnant woman stranded at a trading post during the American Civil War.
+
+MULTI-HOP CLAIM: The founder of the International Grenfell Association, Sir Wilfred Thomason Grenfell, was a medical missionary to Newfoundland and Labrador. The city of Corner Brook, serviced by the Corner Brook Transit, is located in the province of Newfoundland and Labrador, Canada. The International Grenfell Association, founded by Grenfell, is headquartered in Mary's Harbour, which is also in Newfoundland and Labrador.
+DECOMPOSED CLAIMS: Sir Wilfred Thomason Grenfell was the founder of the International Grenfell Association.
+Corner Brook is serviced by the Corner Brook Transit.
+The International Grenfell Association is headquartered in Mary's Harbour.
+
+MULTI-HOP CLAIM: The 2016 romantic drama "Me Before You," directed by Thea Sharrock, features Sam Claflin as Will Traynor. Sam Claflin is known for his roles as Finnick Odair in "The Hunger Games" film series, Philip Swift in "Pirates of the Caribbean: On Stranger Tides," and Woody Harrelson's co-star in "The Lost Future."
+DECOMPOSED CLAIMS: The 2016 romantic drama "Me Before You," is directed by Thea Sharrock.
+"Me Before You" features Sam Claflin as Will Traynor.
+Sam Claflin co-starred with Woody Harrelson in "The Lost Future."
+
+###
+MULTI-HOP CLAIM: {claim}
+DECOMPOSED CLAIMS:"""
+
+# base claim hinzufügen, um nur die wichtigen teile zu decomposen
+decompose_with_base_claim = """
+
+
+BASE CLAIM: Sia heavily sampled the Sergei O. Prokofieff's grandfather's song that Party Like a Russian samples. The song was classical music written by a Russian composer.
+ENHANCED CLAIM: Sia heavily sampled the song 'Montagues and Capulets' by Sergei Prokofiev, a Russian composer, for her song 'Taken for Granted.' The song is part of Prokofiev's ballet 'Romeo and Juliet,' which was first performed in 1940. The song 'Party Like a Russian' by Robbie Williams also samples 'Montagues and Capulets.'
+DECOMPSOED CLAIMS:Sia heavily sampled the song 'Montagues and Capulets' for her song 'Taken for Granted.'
+'Montagues and Capulets' was composed by Sergei O. Prokofieff's grandfather, a Russian composer.
+The song 'Montagues and Capulets' is also sampled in Robbie Williams' song 'Party Like a Russian.
+
+BASE CLAIM: The musician that signed Godhead (band) to their label and another singer are both American singer, songwriters. Second Hand Life is the tenth solo studio album by this other singer.
+ENHANCED CLAIM: Marilyn Manson, an American rock band formed by singer Marilyn Manson and guitarist Daisy Berkowitz in Fort Lauderdale, Florida, in 1989, and Joe Lynn Turner, an American singer and songwriter, are both American musicians. Second Hand Life is the tenth solo studio album by Joe Lynn Turner. Marilyn Manson signed Godhead (band) to their label, Headhunter Records, an American rock music record label distributed by Cargo Music.
+DECOMPSOED CLAIMS: Marilyn Manson signed the band Godhead to their label.
+Marilyn Manson is an American singer and songwriter.
+Joe Lynn Turner is an American singer and songwriter.
+'Second Hand Life' is the tenth solo studio album by Joe Lynn Turner.
+
+BASE CLAIM: The station that has Ong-Art Singlumpong for an executive director has broadcast the American sports HBO World Championship Boxing that premiered in the early 1970s.
+ENHANCED CLAIM: Channel 8, a Thai digital cable television channel, broadcasts popular events such as HBO World Championship Boxing, which premiered in January 1973. Ong-Art Singlumpong serves as an executive director for Channel 8.
+DECOMPSOED CLAIMS: Channel 8 is a television channel that has Ong-Art Singlumpong as an executive director.
+Channel 8 has broadcast the American sports program HBO World Championship Boxing which premiered in the early 1970s.
+
+BASE CLAIM: The founder of an organization located in Mary's Harbour acts as a missionary to two areas. A city in these areas is serviced by the Corner Brook Transport.
+ENHANCED CLAIM: The founder of the International Grenfell Association, Sir Wilfred Thomason Grenfell, was a medical missionary to Newfoundland and Labrador. The city of Corner Brook, serviced by the Corner Brook Transit, is located in the province of Newfoundland and Labrador, Canada. The International Grenfell Association, founded by Grenfell, is headquartered in Mary's Harbour, which is also in Newfoundland and Labrador.
+DECOMPOSED CLAIMS: Sir Wilfred Thomason Grenfell was the founder of the International Grenfell Association.
+Corner Brook is serviced by the Corner Brook Transit.
+The International Grenfell Association is headquartered in Mary's Harbour.
+
+BASE CLAIM: The 2016 romantic drama "Me Before You" is directed by Thea Sharrock. The star of the film The Lost Future (who also appears in in another film) stars as the character Will Traynor. Woody Harrelson also stars in the other film.
+ENHANCED CLAIM: The 2016 romantic drama "Me Before You," directed by Thea Sharrock, features Sam Claflin as Will Traynor. Sam Claflin is known for his roles as Finnick Odair in "The Hunger Games" film series, Philip Swift in "Pirates of the Caribbean: On Stranger Tides," and Woody Harrelson's co-star in "The Lost Future."
+DECOMPOSED CLAIMS: The 2016 romantic drama "Me Before You," is directed by Thea Sharrock.
+"Me Before You" features Sam Claflin as Will Traynor.
+Sam Claflin co-starred with Woody Harrelson in "The Lost Future."
+
+BASE CLAIM: The Lusty Men is a western directed by this man. He and the writer of America America are both actors and directors.
+ENHANCED CLAIM: The Lusty Men is a western film directed by Nicholas Ray. He and Elia Kazan, the writer and director of America America, are both actors and directors.
+DECOMPSOED CLAIMS:
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+###
+BASE CLAIM: {base_claim}
+ENHANCED CLAIM: {enhanced_claim}
+DECOMPSOED CLAIMS:
+"""
+
+decompose_without_redundancy = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, decompose it into simpler, standalone claims that adhere to the following criteria:
+1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
+2. Isolate Key Concepts and Relationships: Highlight the main subjects, actions, and notable attributes to ensure the vectors generated from these claims closely align with those of potential matching documents.
+3. Ensure Standalone Validity: Each claim must be understandable and searchable on its own, containing all necessary information for retrieval.
+4. Avoid Adding Information: Do not include any information that is not present in the original multi-hop claim. Rely solely on the provided content.
+5. Manage Redundancy: If multiple potential decomposed claims involve the same entity or fact, consolidate them into a single claim unless different aspects are critically relevant for separate retrieval paths.
+6. Separate Clearly: Do not use listing and separate each decomposed claim with a newline.
+Here are examples:
+[/INST]
+###
+MULTI-HOP CLAIM: The Lusty Men is a western film directed by Nicholas Ray. He and Elia Kazan, the writer of America America, are both actors and directors.
+DECOMPOSED CLAIMS: The Lusty Men is a western film directed by Nicholas Ray who is both an actor and a director.
+Elia Kazan is both an actor and a director and wrote the film America America.
+
+MULTI-HOP CLAIM: Sia heavily sampled the song 'Montagues and Capulets' by Sergei O.Prokofieff's grandfather, a Russian composer, for her song 'Taken for Granted.' The song is part of Prokofiev's ballet 'Romeo and Juliet,' which was first performed in 1940. The song 'Party Like a Russian' by Robbie Williams also samples 'Montagues and Capulets.'
+DECOMPOSED CLAIMS: Sia heavily sampled the song 'Montagues and Capulets' for her song 'Taken for Granted.'
+'Montagues and Capulets' was composed by Sergei O. Prokofieff's grandfather, a Russian composer.
+The song 'Montagues and Capulets' is also sampled in Robbie Williams' song 'Party Like a Russian.
+
+MULTI-HOP CLAIM: The musician that signed Godhead (band) to their label, Marilyn Manson, and Joe Lynn Turner are both American singer, songwriters. Second Hand Life Second Hand Life is the tenth solo studio album by Joe Lynn Turner.
+DECOMPOSED CLAIMS: Marilyn Manson who is an American singer and songwriter, signed the band Godhead to their label.
+'Second Hand Life' is the tenth solo studio album by Joe Lynn Turner who is an American singer and songwriter.
+
+MULTI-HOP CLAIM: The Melville suburb in southern Hamilton, New Zealand contains streets named after war heroes including Douglas Melville Charles Guest. Douglas Melville Charles Guest, also known as Douglas Bader, was the subject of the 1956 British biographical film 'Reach for the Sky'. He was a Royal Air Force flying ace during the Second World War.
+DECOMPOSED CLAIMS: The Melville suburb in southern Hamilton, New Zealand, features streets named after war heroes, including one named after Douglas Melville Charles Guest, also known as Douglas Bader.
+Douglas Bader, a Royal Air Force flying ace during the Second World War, was the subject of the 1956 British biographical film 'Reach for the Sky'.
+
+MULTI-HOP CLAIM: Channel 8, which has Ong-Art Singlumpong for an executive director, has broadcast the American sports HBO World Championship Boxing that premiered in the early 1970s.
+DECOMPOSED CLAIMS: Channel 8 is a television channel that has Ong-Art Singlumpong as an executive director.
+Channel 8 has broadcast the American sports program HBO World Championship Boxing which premiered in the early 1970s.
+
+MULTI-HOP CLAIM: The Landsman Kill, a body of water, is near the Dutchess County Fairgrounds and several historical landmarks on New York State Route 308, which intersects State Route 199 at Rock City in the state where billionaire Robert F. Kennedy was a junior senator.
+DECOMPOSED CLAIMS: The Landsman Kill, a body of water, is located near the Dutchess County Fairgrounds along New York State Route 308.
+New York State Route 308, home to several historical landmarks, intersects with State Route 199 at Rock City.
+Robert F. Kennedy, a billionaire and former junior senator, served in New York state.
+
+MULTI-HOP CLAIM: Kelly Preston, the actress that starred as a parent in Sky High (2005 film), is married to John Travolta, one of the subjects of film-critic Nigel Andrews' books. She also starred in Cheyenne Warrior, a 1994 American film about a pregnant woman who is stranded at a trading post during the American Civil War.
+DECOMPOSED CLAIMS: Kelly Preston starred as a parent in the film Sky High (2005) and in Cheyenne Warrior, a 1994 American film about a pregnant woman stranded at a trading post during the American Civil War.
+John Travolta, Kelly Preston's husband, is one of the subjects of film-critic Nigel Andrews' books.
+
+MULTI-HOP CLAIM: The founder of the International Grenfell Association, Sir Wilfred Thomason Grenfell, was a medical missionary to Newfoundland and Labrador. The city of Corner Brook, serviced by the Corner Brook Transit, is located in the province of Newfoundland and Labrador, Canada. The International Grenfell Association, founded by Grenfell, is headquartered in Mary's Harbour, which is also in Newfoundland and Labrador.
+DECOMPOSED CLAIMS: Sir Wilfred Thomason Grenfell was the founder of the International Grenfell Association, which is headquartered in Mary's Harbour.
+Corner Brook is serviced by the Corner Brook Transit.
+
+MULTI-HOP CLAIM: The 2016 romantic drama "Me Before You," directed by Thea Sharrock, features Sam Claflin as Will Traynor. Sam Claflin is known for his roles as Finnick Odair in "The Hunger Games" film series, Philip Swift in "Pirates of the Caribbean: On Stranger Tides," and Woody Harrelson's co-star in "The Lost Future."
+DECOMPOSED CLAIMS: The 2016 romantic drama "Me Before You," is directed by Thea Sharrock.
+"Me Before You" features Sam Claflin who co-starred with Woody Harrelson in "The Lost Future."
+
+###
+MULTI-HOP CLAIM: {claim}
+DECOMPOSED CLAIMS:"""
+
+decompose_atomar = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, please transform it into atomic claims. Each atomic claim should adhere to the following guidelines:
+1. Single Entity Focus: Each atomic claim must contain information pertaining to only one entity. This ensures clarity and precision in data retrieval from a vector database, where each data point (or vector) represents a single, distinct entity or concept.
+2. Avoid Relationships: Do not include relationships or connections between entities in the atomic claims. This maintains the independence of data points for more straightforward and efficient retrieval.
+3. Non-Redundant: Ensure that each entity is mentioned only once across all claims. This avoids duplication and maintains database efficiency.
+4. Separate Clearly: Do not use listing and separate each decomposed claim with a newline.
+[/INST]
+###
+MULTI-HOP CLAIM: The Lusty Men is a western film directed by Nicholas Ray. He and Elia Kazan, the writer of America America, are both actors and directors.
+ATOMIC CLAIMS: The Lusty Men is a western film.
+Nicholas Ray is a director and actor.
+Elia Kazan is a writer, director, and actor.
+America America is a film.
+
+MULTI-HOP CLAIM: Kelly Preston, the actress that starred as a parent in Sky High (2005 film), is married to John Travolta, one of the subjects of film-critic Nigel Andrews' books. She also starred in Cheyenne Warrior, a 1994 American film about a pregnant woman who is stranded at a trading post during the American Civil War.
+ATOMIC CLAIMS: Kelly Preston is an actress.
+Sky High is a 2005 film.
+Cheyenne Warrior is a 1994 American film.
+Nigel Andrews wrote a book.
+John Travolta is a subject of a book.
+
+MULTI-HOP CLAIM: Sia heavily sampled the song 'Montagues and Capulets' by Sergei O. Prokofieff's grandfather, a Russian composer, for her song 'Taken for Granted.' The song is part of Prokofiev's ballet 'Romeo and Juliet,' which was first performed in 1940. The song 'Party Like a Russian' by Robbie Williams also samples 'Montagues and Capulets.'
+ATOMIC CLAIMS: Sia is an artist.
+'Taken for Granted' is a song.
+Sergei O. Prokofiev's grandfather is a Russian composer.
+'Montagues and Capulets' is part of a ballet.
+'Romeo and Juliet' premiered in 1940.
+Robbie Williams is an artist.
+'Party Like a Russian' is a song.
+
+MULTI-HOP CLAIM: The 2016 romantic drama "Me Before You," directed by Thea Sharrock, features Sam Claflin as Will Traynor. Sam Claflin is known for his roles as Finnick Odair in "The Hunger Games" film series, Philip Swift in "Pirates of the Caribbean: On Stranger Tides," and Woody Harrelson's co-star in "The Lost Future."
+ATOMIC CLAIMS: "Me Before You" is a 2016 romantic drama.
+Thea Sharrock is a director.
+Sam Claflin is an actor.
+Woody Harrelson is an actor.
+"The Lost Future" is a film.
+
+MULTI-HOP CLAIM: Channel 8, which has Ong-Art Singlumpong for an executive director, has broadcast the American sports HBO World Championship Boxing that premiered in the early 1970s.
+ATOMIC CLAIMS: Channel 8 is a television channel.
+Ong-Art Singlumpong is an executive director.
+HBO World Championship Boxing is an American sports program.
+
+MULTI-HOP CLAIM: The musician that signed Godhead (band) to their label, Marilyn Manson, and Joe Lynn Turner are both American singer, songwriters. Second Hand Life Second Hand Life is the tenth solo studio album by Joe Lynn Turner.
+ATOMIC CLAIMS: Marilyn Manson is a musician.
+Godhead is a band.
+Joe Lynn Turner is an American singer and songwriter.
+"Second Hand Life" is a tenth solo studio album.
+
+MULTI-HOP CLAIM: Neither the vocalist of The Halo Method, Lukas Rossi, nor Terry Kath are New Yorkers.
+ATOMIC CLAIMS: Lukas Rossi is a vocalist.
+Terry Kath is not a New Yorker.
+The Halo Method is a band.
+
+MULTI-HOP CLAIM: The film "Ghost Team" is based on The Quiet Family, a 1998 Korean comedy horror film directed by Kim Jee-woon. Oviya, an Indian film actress, is part of the ensemble cast in this horror comedy.
+ATOMIC CLAIMS: "Ghost Team" is a film.
+"The Quiet Family" is a 1998 Korean comedy horror film.
+Kim Jee-woon is a director.
+Oviya is an Indian film actress.
+
+MULTI-HOP CLAIM: Euptelea and Muehlenbeckia are both genuses.
+ATOMIC CLAIMS: Euptelea is a genus.
+Muehlenbeckia is a genus.
+
+###
+MULTI-HOP CLAIM: {claim}
+ATOMIC CLAIMS:
+"""
+
+
+
+decompose_atomar_with_base = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, your task is to decompose it into the simplest, standalone, atomic claims that adhere to the following guidelines:
+1. Focus on Atomic Information: Each decomposed claim should represent the most basic unit of information about a single entity.
+2. No Relationships between entities: Avoid including relationships or connections between entities in the decomposed claims, focusing solely on individual entities.
+3. Avoid Redundancy: Ensure that each entity is only mentioned once across all decomposed claims. If an entity is already covered in a previous claim, do not repeat it.
+4. Separate Clearly: Do not use listing and separate each decomposed claim with a newline.
+[/INST]
+Examples:
+###
+MULTI-HOP CLAIM: The Lusty Men is a western film directed by Nicholas Ray. He and Elia Kazan, the writer of America America, are both actors and directors.
+DECOMPOSED CLAIMS: The Lusty Men is a western film.
+Nicholas Ray is a director and actor.
+Elia Kazan is a writer, director, and actor.
+America America is a film.
+
+MULTI-HOP CLAIM: Kelly Preston, the actress that starred as a parent in Sky High (2005 film), is married to John Travolta, one of the subjects of film-critic Nigel Andrews' books. She also starred in Cheyenne Warrior, a 1994 American film about a pregnant woman who is stranded at a trading post during the American Civil War.
+DECOMPOSED CLAIMS: Kelly Preston is an actress.
+Sky High is a 2005 film.
+Cheyenne Warrior is a 1994 American film.
+Nigel Andrews wrote a book.
+John Travolta is a subject of a book.
+
+MULTI-HOP CLAIM: Sia heavily sampled the song 'Montagues and Capulets' by Sergei O. Prokofieff's grandfather, a Russian composer, for her song 'Taken for Granted.' The song is part of Prokofiev's ballet 'Romeo and Juliet,' which was first performed in 1940. The song 'Party Like a Russian' by Robbie Williams also samples 'Montagues and Capulets.'
+DECOMPOSED CLAIMS: Sia is an artist.
+'Taken for Granted' is a song.
+Sergei O. Prokofiev's grandfather is a Russian composer.
+'Montagues and Capulets' is part of a ballet.
+'Romeo and Juliet' premiered in 1940.
+Robbie Williams is an artist.
+'Party Like a Russian' is a song.
+
+MULTI-HOP CLAIM: The 2016 romantic drama "Me Before You," directed by Thea Sharrock, features Sam Claflin as Will Traynor. Sam Claflin is known for his roles as Finnick Odair in "The Hunger Games" film series, Philip Swift in "Pirates of the Caribbean: On Stranger Tides," and Woody Harrelson's co-star in "The Lost Future."
+DECOMPOSED CLAIMS: "Me Before You" is a 2016 romantic drama.
+Thea Sharrock is a director.
+Sam Claflin is an actor.
+Woody Harrelson is an actor.
+"The Lost Future" is a film.
+
+BASE CLAIM: Neither the vocalist of The Halo Method nor Terry Kath are New Yorkers.
+ENHANCED CLAIM: Neither the vocalist of The Halo Method, Lukas Rossi, nor Terry Kath, the uncredited lead vocalist of the Chicago song 'Wishing You Were Here,' are New Yorkers.
+DECOMPOSED CLAIMS: Lukas Rossi is a vocalist.
+Terry Kath is not a New Yorker.
+The Halo Method is a band.
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+BASE CLAIM:
+ENHANCED CLAIM:
+DECOMPSOED CLAIMS:
+
+###
+BASE CLAIM: {base_claim}
+ENHANCED CLAIM: {enhanced_claim}
+DECOMPSOED CLAIMS:
+"""

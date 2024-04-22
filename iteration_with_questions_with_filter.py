@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '7'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
 
 import sys
 from pathlib import Path
@@ -12,18 +12,7 @@ from output_parsers import EnhancedBaseClaimsOutputParser, SubQuestionsOutputPar
 from utils import load_obj, load_vectordb, save_obj
 from tqdm import tqdm
 
-#data = load_obj("data/iteration_base.json") # ein base retrieval bereits durchgeführt
 data = load_obj("data/iteration_train.json")
-#qualitative_analysis_claims_10.json
-"""data = load_obj("data/qualitative_analysis_claims_10_base.json")
-for hop_count in data:
-    for key in data[hop_count]:
-        for item in data[hop_count][key]:
-            item["previous_iteration_sentences"] = []
-            item["claim_0"] = item["claim"]
-            item["retrieved_0"] = item["base_retrieved"]
-save_obj(data, "data/iteration_base.json")            
-"""
 
 
 model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"
@@ -35,7 +24,7 @@ llm_question_generator = create_chain_with_postprocessor(create_prompt(template=
 
 llm_base_enhancement = create_chain_with_postprocessor(create_prompt(template=add_key_entities_prompt), 
                         create_llm_pipeline(model_id=model_id,
-                                        device_map="cuda:0", load_in_8bit=False, load_in_4bit=True),
+                                        device_map="cuda:1", load_in_8bit=False, load_in_4bit=True),
                         stop=["CONTEXT:", "CLAIM:"], 
                         postprocessor=EnhancedBaseClaimsOutputParser)
 print("llm Loaded")
@@ -77,8 +66,8 @@ for run_count in tqdm(range(5)):
 
 
                         question_sentence_pairs = cross_enc.claim_sentence_creator.create_claim_sentence_pairs(claim= question, titles=retrieved)
-                        #if run_count > 0:
-                            #question_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(question_sentence_pairs, item["previous_iteration_sentences"])
+                        if run_count > 0:
+                            question_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(question_sentence_pairs, item["previous_iteration_sentences"])
                             # Die 20 Sätze aller vorherigen Iteration werden raus gefiltert -> noch mit einer threshold probieren
                         prediction = cross_enc.predict(question_sentence_pairs, return_probabilties=True)
                         prediciton_sorted = sorted(prediction, key=lambda x: x[2], reverse=True)
@@ -109,7 +98,7 @@ for run_count in tqdm(range(5)):
                     #sentences_sorted = [item[1] for item in prediciton_sorted]
                     #top_base_sentences = sentences_sorted[:20]
                     item[f"top_base_sentences_{run_count}"] = top_sentences
-                    #item["previous_iteration_sentences"].extend(top_sentences)
+                    item["previous_iteration_sentences"].extend(top_sentences)
 
                     ##### enhancing base claim #####
                     enhanced_base_claim = llm_base_enhancement.invoke({"claim": item[f"claim_{run_count}"], "context" : "\n".join(top_sentences)})
@@ -123,5 +112,5 @@ for run_count in tqdm(range(5)):
                         retrieved.append(doc.metadata["title"])
                     item[f"retrieved_{run_count+1}"] = retrieved
 
-save_obj(data, "data/iterative_test_with_questions_60_sentences_no_filter.json")
+save_obj(data, "data/iteration_train_with_questions_60_sentences_with_filter.json")
 

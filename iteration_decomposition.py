@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path("./cross_encoder").resolve()))
 from cross_encoder.model import TextClassificationModel
 from huggingface_llm_loading import TransformerLLM, create_chain, create_llm_pipeline, create_prompt, create_chain_with_postprocessor
-from prompt_templates import add_context_prompt, sub_question_prompt, add_key_entities_prompt, decompose_9shot_instruct
+from prompt_templates import add_context_prompt, sub_question_prompt, add_key_entities_prompt, decompose_9shot_instruct, decompose_without_redundancy, decompose_atomar
 from custom_mistral_embedder import CustomMistralEmbedder
 from output_parsers import EnhancedBaseClaimsOutputParser, SubQuestionsOutputParser
 from utils import load_obj, load_vectordb, save_obj
@@ -15,10 +15,10 @@ from tqdm import tqdm
 data = load_obj("data/iterative_test_with_questions_60_sentences.json")
 
 model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"
-llm_decomposed_claims_generator = create_chain_with_postprocessor(create_prompt(template=decompose_9shot_instruct), 
+llm_decomposed_claims_generator = create_chain_with_postprocessor(create_prompt(template=decompose_atomar), 
                         create_llm_pipeline(model_id=model_id,
                                         device_map="cuda:0", load_in_8bit=False, load_in_4bit=True),
-                        stop=["CLAIM:", "CLAIMS:"], 
+                        stop=["MULTI-HOP", "CLAIM:", "CLAIMS:", "DECOMPOSED"], 
                         postprocessor=SubQuestionsOutputParser)
 
 print("llm Loaded")
@@ -55,7 +55,7 @@ for run_count in tqdm(range(5)):
                     retrieved_base = []
                     for doc in db_output:
                         retrieved_base.append(doc.metadata["title"])
-                    item[f"base_retrieved_like_decomposed_{run_count+1}"] = retrieved_base
+                    item[f"base_retrieved_like_decomposed_{run_count}"] = retrieved_base
 
-save_obj(data, "data/iterative_test_decomposition.json")
+save_obj(data, "data/iterative_test_decomposition_atomar.json")
 
