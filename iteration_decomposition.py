@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path("./cross_encoder").resolve()))
 from cross_encoder.model import TextClassificationModel
 from huggingface_llm_loading import TransformerLLM, create_chain, create_llm_pipeline, create_prompt, create_chain_with_postprocessor
-from prompt_templates import add_context_prompt, sub_question_prompt, add_key_entities_prompt, decompose_9shot_instruct, decompose_without_redundancy, decompose_atomar
+from prompt_templates import add_context_prompt, sub_question_prompt, add_key_entities_refined_prompt, decompose_9shot_instruct, decompose_without_redundancy, decompose_atomar
 from custom_mistral_embedder import CustomMistralEmbedder
 from output_parsers import EnhancedBaseClaimsOutputParser, SubQuestionsOutputParser
 from utils import load_obj, load_vectordb, save_obj

@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path("./cross_encoder").resolve()))
 from cross_encoder.model import TextClassificationModel
 from huggingface_llm_loading import TransformerLLM, create_chain, create_llm_pipeline, create_prompt, create_chain_with_postprocessor
-from prompt_templates import add_context_prompt, sub_question_prompt, add_key_entities_prompt
+from prompt_templates import add_context_prompt, sub_question_prompt, add_key_entities_refined_prompt
 from custom_mistral_embedder import CustomMistralEmbedder
 from output_parsers import EnhancedBaseClaimsOutputParser, SubQuestionsOutputParser
 from utils import load_obj, load_vectordb, save_obj
@@ -33,7 +33,7 @@ llm_question_generator = create_chain_with_postprocessor(create_prompt(template=
                         stop=["QUESTIONS:", "CLAIM:"], 
                         postprocessor=SubQuestionsOutputParser)
 
-llm_base_enhancement = create_chain_with_postprocessor(create_prompt(template=add_key_entities_prompt), 
+llm_base_enhancement = create_chain_with_postprocessor(create_prompt(template=add_key_entities_refined_prompt), 
                         create_llm_pipeline(model_id=model_id,
                                         device_map="cuda:0", load_in_8bit=False, load_in_4bit=True),
                         stop=["CONTEXT:", "CLAIM:"], 

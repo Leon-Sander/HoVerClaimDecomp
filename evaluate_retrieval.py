@@ -27,21 +27,12 @@ def is_successful_retrieval(obj, retrieval_key):
     f1 = (2 * precision * recall) / (precision + recall)
     return f1"""
 
-def calculate_success_percentage(dataset_type, embedder_name, k):
+def calculate_success_percentage(file_path, dataset_type, embedder_name, k):
     #file_path = f'{embedder_name}_retrieval_output_{dataset_type}_{k}.json'
     #file_path ="decomposed_mistral_retrieval_output_dev_100_perclaim_few_shot.json"
     #file_path = "mistral_retrieval_output_dev_100_likedecomposed_few_shot.json"
-    file_path = "mistral_retrieval_output_dev_100_like_enriched.json"
+    
     data = load_obj(file_path)
-
-    """if dataset_type == "dev":
-        hop_counts = {2: {'total': 1126, 'successful': 0},
-                    3: {'total': 1835, 'successful': 0},
-                    4: {'total': 1039, 'successful': 0}}
-    elif dataset_type == "train":
-        hop_counts = {2: {'total': 9052, 'successful': 0},
-                    3: {'total': 6084, 'successful': 0},
-                    4: {'total': 3035, 'successful': 0}}# """
     hop_counts = {2: {'total': 0, 'successful': 0},
                     3: {'total': 0, 'successful': 0},
                     4: {'total': 0, 'successful': 0}}
@@ -77,8 +68,9 @@ def calculate_success_percentage(dataset_type, embedder_name, k):
 
 def main():
     embedder_name = "mistral"
+    file_path = "mistral_retrieval_output_dev_100_multi_hop_prompt.json"
     #calculate_success_percentage(dataset_type="train", embedder_name=embedder_name, k=100)
-    calculate_success_percentage(dataset_type="dev", embedder_name=embedder_name, k=100)
+    calculate_success_percentage(file_path = file_path, dataset_type="dev", embedder_name=embedder_name, k=100)
     #calculate_success_percentage(dataset_type="train", embedder_name=embedder_name, k=1000)
     #calculate_success_percentage(dataset_type="dev", embedder_name=embedder_name, k=1000)
 

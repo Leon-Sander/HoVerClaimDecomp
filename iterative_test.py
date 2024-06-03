@@ -6,13 +6,14 @@ from pathlib import Path
 sys.path.append(str(Path("./cross_encoder").resolve()))
 from cross_encoder.model import TextClassificationModel
 from huggingface_llm_loading import TransformerLLM, create_chain, create_llm_pipeline, create_prompt, create_chain_with_postprocessor
-from prompt_templates import add_context_prompt, add_key_entities_prompt
+from prompt_templates import add_context_prompt, add_key_entities_refined_prompt
 from custom_mistral_embedder import CustomMistralEmbedder
 from output_parsers import EnhancedBaseClaimsOutputParser
 from utils import load_obj, load_vectordb, save_obj
 from tqdm import tqdm
 
-data = load_obj("data/iteration_base.json") # ein base retrieval bereits durchgeführt
+#data = load_obj("data/iteration_base.json") # ein base retrieval bereits durchgeführt
+data = load_obj("data/train_qualitative_analysis_100.json")
 question_data = load_obj("data/iterative_test_with_questions_60_sentences_no_filter.json")
 #qualitative_analysis_claims_10.json
 """data = load_obj("data/qualitative_analysis_claims_10_base.json")
@@ -27,7 +28,7 @@ save_obj(data, "data/iteration_base.json")
 
 
 model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"
-llm = create_chain_with_postprocessor(create_prompt(template=add_key_entities_prompt), 
+llm = create_chain_with_postprocessor(create_prompt(template=add_key_entities_refined_prompt), 
                         create_llm_pipeline(model_id=model_id,
                                         device_map="cuda:0", load_in_8bit=False, load_in_4bit=True),
                         stop=["CONTEXT:", "CLAIM:"], 

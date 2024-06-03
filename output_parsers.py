@@ -11,10 +11,10 @@ class EnhancedBaseClaimsOutputParser(BaseOutputParser[str]):
     def _type(self) -> str:
         return "Simple Parser"
     
-class SimpleTrueFalseParser(BaseOutputParser[str]):
-    def parse_result(self, result: list, *, partial: bool = False) -> str:
+class TrueFalseParser(BaseOutputParser[str]):
+    def parse(self, text: str) -> str:
         # Assuming the first generation contains the desired output
-        output_text = result[0].text.strip()
+        output_text = text.strip()
         
         # Extract "True" or "False" from the beginning of the output
         if output_text.startswith("True"):
@@ -34,6 +34,7 @@ class SubQuestionsOutputParser(BaseOutputParser[str]):
         text = text.replace("###", "")
         text = text.lstrip()
         question_list = text.split("\n")
+        question_list = [question for question in question_list if question != ""]
         return question_list
 
     @property
