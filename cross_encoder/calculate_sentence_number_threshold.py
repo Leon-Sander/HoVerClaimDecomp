@@ -27,7 +27,7 @@ def run_on_sample_data():
                         prediction.append((tpl[0], tpl[1], output[i]))
                     
                 else:
-                    prediction = cross_enc.predict(claim_sentence_pairs, return_probabilties=True)
+                    prediction = cross_enc.predict(claim_sentence_pairs, return_probabilities=True)
                 
                 
                 
@@ -50,7 +50,7 @@ def run_on_whole_dataset():
                 prediction.append((tpl[0], tpl[1], output[i]))
             
         else:
-            prediction = cross_enc.predict(claim_sentence_pairs, return_probabilties=True)
+            prediction = cross_enc.predict(claim_sentence_pairs, return_probabilities=True)
         
         
         

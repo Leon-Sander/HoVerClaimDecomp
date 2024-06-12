@@ -23,9 +23,9 @@ def create_qualitative_analysis_data_sample(number_of_claims, data_path ,save_pa
 
     data = load_obj(data_path)
     data_sample = {
-        #"2": {"SUPPORTED": None, "NOT_SUPPORTED": None},
+        "2": {"SUPPORTED": None, "NOT_SUPPORTED": None},
         "3": {"SUPPORTED": None, "NOT_SUPPORTED": None},
-        #"4": {"SUPPORTED": None, "NOT_SUPPORTED": None}
+        "4": {"SUPPORTED": None, "NOT_SUPPORTED": None}
     }
     data_sample = categorize_and_add_data(data, data_sample, number_of_claims)
     if save_path:
@@ -78,6 +78,41 @@ def create_not_supported_counterpart_dataset(data_path, save_path):
 
     not_supported_counterpart_data =get_not_supported_counterpart_claims(data)
     save_obj(not_supported_counterpart_data, save_path)
+
+
+def prepare_for_iteration(items):
+    for item in items:
+        item["previous_iteration_sentences"] = []
+        item["claim_0"] = item["claim"]
+        item["retrieved_0"] = item["retrieved"]
+        del(item["claim"])
+        del(item["retrieved"])
+    return items
+
+def create_full_dataset(data, save_path=None):
+    """
+    One retrieval has to be done beforehand
+    """
+    data_categorized = {
+        "2": {"SUPPORTED": None, "NOT_SUPPORTED": None},
+        "3": {"SUPPORTED": None, "NOT_SUPPORTED": None},
+        "4": {"SUPPORTED": None, "NOT_SUPPORTED": None}
+    }
+        
+    for hop_count in data_categorized.keys():
+        supported_data = [d for d in data if d['num_hops'] == int(hop_count) and d['label'] == 'SUPPORTED']
+        not_supported_data = [d for d in data if d['num_hops'] == int(hop_count) and d['label'] == 'NOT_SUPPORTED']
+        supported_data = prepare_for_iteration(supported_data)
+        not_supported_data = prepare_for_iteration(not_supported_data)
+
+        data_categorized[hop_count]['SUPPORTED'] = supported_data
+        data_categorized[hop_count]['NOT_SUPPORTED'] = not_supported_data
+    
+    if save_path:
+        save_obj(data_categorized, save_path)
+
+    return data_categorized
+
 
 if __name__ == "__main__":
     #create_not_supported_counterpart_dataset(data_path = "/home/sander/code/thesis/hover/data/hover/hover_train_release_v1.1.json",

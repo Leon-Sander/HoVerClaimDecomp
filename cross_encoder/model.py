@@ -97,7 +97,7 @@ class TextClassificationModel(pl.LightningModule):
         }
         return [optimizer], [lr_scheduler]
     
-    def predict(self, claim_text_pairs, return_probabilties=True):
+    def predict(self, claim_text_pairs, return_probabilities=True):
         #self.model.eval()
         predictions = []
 
@@ -123,7 +123,7 @@ class TextClassificationModel(pl.LightningModule):
                 outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
 
                 probs = torch.sigmoid(outputs.logits).squeeze()
-                if return_probabilties:
+                if return_probabilities:
                     probabilities = probs.cpu().numpy().tolist()
                     predictions.append((claim, text, probabilities[1]))
                 else:

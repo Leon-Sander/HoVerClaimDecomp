@@ -27,7 +27,7 @@ def get_sorted_sentences(cross_enc, claim, retrieved_titles, do_filter, run_coun
 
     if do_filter and run_count > 0:
         question_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(question_sentence_pairs, previous_iteration_sentences)
-    cross_enc_output = cross_enc.predict(question_sentence_pairs, return_probabilties=True)
+    cross_enc_output = cross_enc.predict(question_sentence_pairs, return_probabilities=True)
     cross_enc_output_sorted = sorted(cross_enc_output, key=lambda x: x[2], reverse=True)
     sentences_sorted = [prediction_tuple[1] for prediction_tuple in cross_enc_output_sorted]
     return sentences_sorted
@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 for item in data[hop_count]:
                     questions_batch = []
                     for question_index, question in enumerate(item[f"sub_questions_{run_count}"]):
-                        sentences_list = get_sorted_sentences(cross_enc, question, item[f"sub_question_retrieval_{run_count}"][question_index], do_filter=False, run_count=run_count, previous_iteration_sentences=[])[:80]
+                        sentences_list = get_sorted_sentences(cross_enc, question, item[f"sub_question_retrieval_{run_count}"][question_index], do_filter=False, run_count=run_count, previous_iteration_sentences=[])[:60]
                         context = "\n".join(sentences_list)
                         questions_batch.append({"question": question, "context" : context})
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
                     questions_batch = []
                     for question_index, question in enumerate(item["not_supported_counterpart"][f"sub_questions_{run_count}"]):
-                        sentences_list = get_sorted_sentences(cross_enc, question, item["not_supported_counterpart"][f"sub_question_retrieval_{run_count}"][question_index], do_filter=False, run_count=run_count, previous_iteration_sentences=[])[:80]
+                        sentences_list = get_sorted_sentences(cross_enc, question, item["not_supported_counterpart"][f"sub_question_retrieval_{run_count}"][question_index], do_filter=False, run_count=run_count, previous_iteration_sentences=[])[:60]
                         context = "\n".join(sentences_list)
                         questions_batch.append({"question": question, "context" : context})
 
@@ -180,5 +180,5 @@ if __name__ == "__main__":
 
 
 
-        save_obj(data, "data/iterative_qualitative_analysis_not_supported_question_answering_80.json")
+        save_obj(data, "data/iterative_not_supported_question_answering_60.json")
 

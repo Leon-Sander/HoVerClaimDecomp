@@ -80,7 +80,7 @@ for run_count in tqdm(range(5)):
                         #if run_count > 0:
                             #question_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(question_sentence_pairs, item["previous_iteration_sentences"])
                             # Die 20 Sätze aller vorherigen Iteration werden raus gefiltert -> noch mit einer threshold probieren
-                        prediction = cross_enc.predict(question_sentence_pairs, return_probabilties=True)
+                        prediction = cross_enc.predict(question_sentence_pairs, return_probabilities=True)
                         prediciton_sorted = sorted(prediction, key=lambda x: x[2], reverse=True)
                         sentences_sorted = [item[1] for item in prediciton_sorted]
                         #sentences_to_append = [sentence for sentence in sentences_sorted[:20] if sentence not in top_sentences]
@@ -104,7 +104,7 @@ for run_count in tqdm(range(5)):
                     #item[f"sub_question_top_sentences_{run_count}"] = top_sentences
                     item[f"sub_question_top_sentences_{run_count}"] = sentences_per_question
                     #claim_sentence_pairs = cross_enc.claim_sentence_creator.create_claim_sentence_pairs_from_sentences(claim= item[f"claim_{run_count}"], sentences=top_sentences)
-                    #prediction = cross_enc.predict(claim_sentence_pairs, return_probabilties=True)
+                    #prediction = cross_enc.predict(claim_sentence_pairs, return_probabilities=True)
                     #prediciton_sorted = sorted(prediction, key=lambda x: x[2], reverse=True)
                     #sentences_sorted = [item[1] for item in prediciton_sorted]
                     #top_base_sentences = sentences_sorted[:20]

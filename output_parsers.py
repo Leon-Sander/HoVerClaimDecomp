@@ -40,8 +40,6 @@ class SubQuestionsOutputParser(BaseOutputParser[str]):
     @property
     def _type(self) -> str:
         return "Parsing LLM Output into a list of Questions or decomposed claims, can be used for both."
-    
-
 
 
 
@@ -83,3 +81,49 @@ class EnhancedClaimsOutputParser(BaseOutputParser[list[str]]):
     
     def parse_batch(self, texts: list[str]) -> list[list[str]]:
         return [self.parse(text) for text in texts]
+    
+class TransformerSubQuestionOutputParser(BaseOutputParser[list[str]]):
+    def __init__(self):
+        super().__init__()
+
+    def parse(self, text: str) -> list[str]:
+        subquestions = text.split("QUESTIONS:")[-1]
+        subquestions = subquestions.replace("###", "")
+        subquestions = subquestions.strip()
+        subquestions = subquestions.replace("\n\n\n", "\n")
+        subquestions = subquestions.replace("\n\n", "\n").split("\n")
+        question_list = [question.lstrip() for question in subquestions if question != "" and question != "CLAIM:"]
+        return question_list
+
+    def parse_batch(self, texts: list[str]) -> list[list[str]]:
+        return [self.parse(text) for text in texts]
+
+    @property
+    def _type(self) -> str:
+        return "subquestion_output_parser"
+
+    def dict(self, **kwargs: any) -> dict:
+        output_parser_dict = super().dict(**kwargs)
+        return output_parser_dict
+
+
+class TransformerClaimRefinementOutputParser(BaseOutputParser[list[str]]):
+    def __init__(self):
+        super().__init__()
+
+    def parse(self, text: str) -> list[str]:
+        refined_claim = text.split("REFINED:")[-1]
+        refined_claim = refined_claim.replace("###", "")
+        refined_claim = refined_claim.strip()
+        return refined_claim
+
+    def parse_batch(self, texts: list[str]) -> list[list[str]]:
+        return [self.parse(text) for text in texts]
+
+    @property
+    def _type(self) -> str:
+        return "refined_claim_output_parser"
+
+    def dict(self, **kwargs: any) -> dict:
+        output_parser_dict = super().dict(**kwargs)
+        return output_parser_dict

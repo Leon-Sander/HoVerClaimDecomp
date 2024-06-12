@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 #data = load_obj("data/iteration_base.json") # ein base retrieval bereits durchgeführt
 data = load_obj("data/qualitative_analysis_not_supported.json")
-question_data = load_obj("data/iterative_qualitative_analysis_not_supported_question_answering_80.json")
+question_data = load_obj("data/iterative_not_supported_subquestions_no_filter_60.json")
 #qualitative_analysis_claims_10.json
 #data = load_obj("data/qualitative_analysis_claims_10_base.json")
 for hop_count in data:
@@ -70,12 +70,12 @@ for run_count in tqdm(range(5)):
                 #if run_count > 0:
                 #    claim_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(claim_sentence_pairs, item["previous_iteration_sentences"])
                     # Die 20 Sätze aller vorherigen Iteration werden raus gefiltert -> noch mit einer threshold probieren
-                prediction = cross_enc.predict(claim_sentence_pairs, return_probabilties=True)
+                prediction = cross_enc.predict(claim_sentence_pairs, return_probabilities=True)
                 prediciton_sorted = sorted(prediction, key=lambda x: x[2], reverse=True)
                 sentences_sorted = [prediction_item[1] for prediction_item in prediciton_sorted]
 
                 #num_sentences_to_pick = min(60, 20*len(item[f"sub_questions_{run_count}"]),len(sentences_sorted))
-                sentences_sorted_top20 = sentences_sorted[:80]
+                sentences_sorted_top20 = sentences_sorted[:60]
 
 
                 item[f"sentences_{run_count}"] = sentences_sorted_top20
@@ -113,12 +113,12 @@ for run_count in tqdm(range(5)):
                 #if run_count > 0:
                 #    claim_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(claim_sentence_pairs, item["not_supported_counterpart"]["previous_iteration_sentences"])
                     # Die 20 Sätze aller vorherigen Iteration werden raus gefiltert -> noch mit einer threshold probieren
-                prediction = cross_enc.predict(claim_sentence_pairs, return_probabilties=True)
+                prediction = cross_enc.predict(claim_sentence_pairs, return_probabilities=True)
                 prediciton_sorted = sorted(prediction, key=lambda x: x[2], reverse=True)
                 sentences_sorted = [prediction_item[1] for prediction_item in prediciton_sorted]
 
                 #num_sentences_to_pick = min(60, 20*len(item[f"sub_questions_{run_count}"]),len(sentences_sorted))
-                sentences_sorted_top20 = sentences_sorted[:80]
+                sentences_sorted_top20 = sentences_sorted[:60]
 
 
                 item["not_supported_counterpart"][f"sentences_{run_count}"] = sentences_sorted_top20
@@ -137,5 +137,5 @@ for run_count in tqdm(range(5)):
             for i in range(len(data[hop_count])):
                 data[hop_count][i]["not_supported_counterpart"][f"claim_{run_count+1}"] = output[i]
 
-save_obj(data, "data/iterative_test_base_80_no_filter_not_supporeted.json")
+save_obj(data, "data/iterative_not_supported_base_no_filter_60_based_on_subquestions.json")
 

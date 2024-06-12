@@ -71,7 +71,7 @@ for threshhold in tqdm([5, 10, 20, 60, 80, 125, 300]):
                         #if run_count > 0:
                         #    claim_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(claim_sentence_pairs, item["previous_iteration_sentences"])
                             # Die 20 Sätze aller vorherigen Iteration werden raus gefiltert -> noch mit einer threshold probieren
-                        prediction = cross_enc.predict(claim_sentence_pairs, return_probabilties=True)
+                        prediction = cross_enc.predict(claim_sentence_pairs, return_probabilities=True)
                         prediciton_sorted = sorted(prediction, key=lambda x: x[2], reverse=True)
                         sentences_sorted = [item[1] for item in prediciton_sorted]
 
