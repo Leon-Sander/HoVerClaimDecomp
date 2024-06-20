@@ -7,7 +7,7 @@ import torch
 from langchain.prompts import PromptTemplate
 from output_parsers import *
 from torch.nn import DataParallel
-from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt, add_key_entities_refined_prompt_4shot, add_key_entities_refined_prompt3
+from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt_4shot
 
 
 def create_prompt(template):
@@ -45,7 +45,7 @@ def create_chain_with_postprocessor(prompt, llm_pipeline, stop=["MULTI-HOP CLAIM
 
 class TransformerLLM():
 
-    def __init__(self, model_id, device_map) -> None:
+    def __init__(self, model_id, device_map, decomposed_template) -> None:
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -63,31 +63,36 @@ class TransformerLLM():
         subquestion_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "QUESTIONS:", "QUESTIONS: ", "\nQUESTIONS: ", ",\nQUESTIONS:"]
         logits_processor = StopwordLogitsProcessor(self.tokenizer, subquestion_stop_words, self.tokenizer.eos_token_id)
         self.logits_processor_subquestions = LogitsProcessorList([logits_processor])
-        #self.stopping_criteria_subquestions = StoppingCriteriaList([StopwordCriteria(self.tokenizer, ["\n\nCLAIM:"])])
         self.prompt_template_subquestions = sub_question_prompt
         self.output_parser_subquestions = TransformerSubQuestionOutputParser()
 
         claim_refinement_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "REFINED:"]
         self.logits_processor_claim_refinement = LogitsProcessorList([StopwordLogitsProcessor(self.tokenizer, claim_refinement_stop_words, self.tokenizer.eos_token_id)])
-        #self.stopping_criteria_claim_refinement = StoppingCriteriaList([StopwordCriteria(self.tokenizer, ["REFINED CLAIM:", "CLAIM:"])])
         self.prompt_template_claim_refinement = add_key_entities_refined_prompt_4shot
         self.output_parser_claim_refinement = TransformerClaimRefinementOutputParser()
 
+        decomposition_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "DECOMPOSED:"]
+        self.logits_processor_decomposition = LogitsProcessorList([StopwordLogitsProcessor(self.tokenizer, decomposition_stop_words, self.tokenizer.eos_token_id)])
+        self.prompt_template_decomposition = decomposed_template #decompose_9shot_instruct
+        self.output_parser_decomposition = TransformerDecomposedClaimsOutputParser()
+        
 
 
-    def predict_decomposition(self, input_list, placeholder_text = "claim", postprocess = True):
+    def generate_decomposition(self, claim_batch, postprocess = True):
         texts = []
-        for input_text in input_list:
-            texts.append(self.prompt_template.replace("{"+ placeholder_text +"}", input_text))
+        for claim in claim_batch:
+            texts.append(self.prompt_template_decomposition.replace("{claim}", claim))
 
-        inputs = self.tokenizer(texts, return_tensors="pt",padding=True).to(self.device_map)
-        output_ids = self.model.generate(**inputs, max_new_tokens=512, stopping_criteria=self.stopping_criteria)
-
-        outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        with torch.no_grad():
+            inputs = self.tokenizer(texts, return_tensors="pt",padding=True).to(self.device_map)
+            #output_ids = self.model.generate(**inputs, max_new_tokens=512, stopping_criteria=self.stopping_criteria_subquestions)
+            output_ids = self.model.generate(**inputs, max_new_tokens=320, logits_processor=self.logits_processor_decomposition)
+            del inputs
+            outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+            del output_ids
         if postprocess:
-            print("running postprocessor")
-            return self.postprocessor.parse_batch(outputs)
-            #output[0].split("DECOMPOSED CLAIMS:")[-1]
+            #print("running postprocessor")
+            return self.output_parser_decomposition.parse_batch(outputs)
         else:
             return outputs
         
@@ -99,7 +104,7 @@ class TransformerLLM():
 
         with torch.no_grad():
             inputs = self.tokenizer(texts, return_tensors="pt",padding=True).to(self.device_map)
-            output_ids = self.model.generate(**inputs, max_new_tokens=512, logits_processor=self.logits_processor_claim_refinement)
+            output_ids = self.model.generate(**inputs, max_new_tokens=320, logits_processor=self.logits_processor_claim_refinement)
             del inputs
             outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
             del output_ids
@@ -118,7 +123,7 @@ class TransformerLLM():
         with torch.no_grad():
             inputs = self.tokenizer(texts, return_tensors="pt",padding=True).to(self.device_map)
             #output_ids = self.model.generate(**inputs, max_new_tokens=512, stopping_criteria=self.stopping_criteria_subquestions)
-            output_ids = self.model.generate(**inputs, max_new_tokens=512, logits_processor=self.logits_processor_subquestions)
+            output_ids = self.model.generate(**inputs, max_new_tokens=320, logits_processor=self.logits_processor_subquestions)
             del inputs
             outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
             del output_ids

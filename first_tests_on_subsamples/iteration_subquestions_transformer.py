@@ -92,7 +92,7 @@ for run_count in tqdm(range(4), desc='Run Count'):
                         retrieved = [doc.metadata["title"] for doc in db_output]
                         data[hop_count][key][j + k][f"retrieved_{run_count + 1}"] = retrieved
                     del enhanced_claims
-
+                torch.cuda.empty_cache()
 
 
 save_obj(data, "data/iterative_FULL_DATASET_with_questions_60_no_filter.json")

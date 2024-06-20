@@ -93,11 +93,46 @@ class ClaimSentencePairsCreator:
 
     def _create_sentences_dict(self, titles : list[str]):
         sentences_dict = {}
-        for title in titles:
+        for title in tqdm(titles):
             text = self._get_text_from_doc(self.cursor, title)
             sentences = corenlp_ssplitter(self.sentence_splitter, text)
             sentences_dict[title] = sentences
         return sentences_dict
+    
+    def populate_new_db(self, titles : list[str]):
+        records = []
+        error_titles = []
+        for title in tqdm(titles):
+            text = self._get_text_from_doc(self.cursor, title)
+            try:
+                sentences = corenlp_ssplitter(self.sentence_splitter, text)
+            except Exception as e:
+                print("Error while splitting sentences for title: " + title)
+                print(e)
+                error_titles.append(title)
+                continue
+            sentences_with_title = []
+            for sentence in sentences:
+                sentences_with_title.append(title + " " + sentence)
+
+            joined_sentences = "\n\n".join(sentences)
+            joined_sentences_with_title = "\n\n".join(sentences_with_title)
+
+            records.append((title, text, joined_sentences, joined_sentences_with_title))
+
+        with open("error_titles.txt", "w") as f:
+            for title in error_titles:
+                f.write(title + "\n")
+
+        print("Inserting records into new db")
+        conn, cursor = connect_to_db("/home/sander/code/thesis/hover/data/hover_with_sentences_splitted.db")
+        cursor.executemany('''
+            INSERT INTO documents (title, text, splitted_sentences, splitted_sentences_with_title)
+            VALUES (?, ?, ?, ?);
+        ''', records)
+        
+        conn.commit()
+        conn.close()
     
     def _connect_to_db(self, db_path):
         conn = sqlite3.connect(db_path)
@@ -128,6 +163,58 @@ class ClaimSentencePairsCreator:
                         supported_sentences.append(sentence)
 
         return supported_sentences
+
+
+
+class ClaimSentencePairsCreator_NewDb:
+    def __init__(self, sql_db_path = '/home/sander/code/thesis/hover/data/hover_with_sentences_splitted.db', with_title = True):
+        conn, self.cursor = connect_to_db(sql_db_path)
+        self.with_title = with_title
+        print("Sentences will be created with title: " + str(self.with_title))
+        
+    def create_claim_sentence_pairs(self, claim :str, titles : list[str]):
+        sentences_list = self.get_splitted_sentences(titles)
+        return [(claim, sentence) for sentence in sentences_list]
+
+    def create_claim_sentence_pairs_from_sentences(self, claim :str, sentences : list[str]):
+        claim_sentence_pairs = []
+        for sentence in sentences:
+            claim_sentence_pairs.append((claim, sentence))
+        return claim_sentence_pairs
+    
+    def get_splitted_sentences(self, title_list):
+        """
+        Retrieve and split sentences associated with each title from the SQLite database in bulk.
+        
+        Args:
+            title_list (list): List of titles for which to retrieve sentences.
+        
+        Returns:
+            list: List of lists, each containing sentences for one title.
+        """
+        if self.with_title:
+            column = "splitted_sentences_with_title"
+        else:
+            column = "splitted_sentences"
+        
+        try:
+            placeholders = ','.join('?' for _ in title_list)
+            query = f"SELECT {column} FROM documents WHERE title IN ({placeholders})"
+            
+            self.cursor.execute(query, title_list)
+            results = self.cursor.fetchall()
+
+            all_sentences = []
+            for result in results:
+                if result:
+                    all_sentences.extend(result[0].split('\n\n'))
+
+        except sqlite3.Error as e:
+            print(f"An error occurred: {e}")
+
+        return all_sentences
+
+
 
 
 

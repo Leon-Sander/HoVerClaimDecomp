@@ -14,15 +14,15 @@ from typing import List
 
 
 class CustomMistralEmbedder(Embeddings):
-    def __init__(self, gpu_count, batch_size):
+    def __init__(self, gpu_count, batch_size, device="cuda:0"):
         super().__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device#torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.gpu_count = gpu_count #torch.cuda.device_count()
         self.batch_size = batch_size
         self.tokenizer = AutoTokenizer.from_pretrained('intfloat/e5-mistral-7b-instruct')
         self.model = AutoModel.from_pretrained('intfloat/e5-mistral-7b-instruct', torch_dtype=torch.float16)
         self.model.eval()
-        self.model.cuda()
+        self.model.to(self.device)
         self.task = 'Given a claim, retrieve documents that support or refute the claim'
         self.question_task = "Given a question, retrieve relevant documents that best answer the question"
         self.multi_hop_task = 'Given a multi-hop claim, retrieve documents that support or refute the claim'
@@ -30,8 +30,8 @@ class CustomMistralEmbedder(Embeddings):
         self.pool_type = "last"
         self.l2_normalize = True
 
-        if self.gpu_count > 1:
-            self.model = nn.DataParallel(self.model)
+        #if self.gpu_count > 1:
+        #    self.model = nn.DataParallel(self.model)
 
     def last_token_pool(self, last_hidden_states: Tensor,
                     attention_mask: Tensor) -> Tensor:
@@ -57,14 +57,15 @@ class CustomMistralEmbedder(Embeddings):
     def _embed_text(self, text: str) -> List[float]:
         max_length = 4096
         batch_dict = create_batch_dict(self.tokenizer, [text], always_add_eos=(self.pool_type == 'last'), max_length=max_length)
-        batch_dict = move_to_cuda(batch_dict)
+        batch_dict = move_to_cuda(batch_dict, self.device)
 
         with torch.cuda.amp.autocast():
             outputs = self.model(**batch_dict)
             embeds = pool(outputs.last_hidden_state, batch_dict['attention_mask'], self.pool_type)
             if self.l2_normalize:
                 embeds = F.normalize(embeds, p=2, dim=-1)
-
+        del batch_dict
+        del outputs
         return embeds.cpu().numpy()[0].tolist()
 
     @torch.no_grad()
@@ -77,7 +78,7 @@ class CustomMistralEmbedder(Embeddings):
         for start_idx in range(0, len(texts), batch_size):
             batch_texts = texts[start_idx:start_idx + batch_size]
             batch_dict = create_batch_dict(self.tokenizer, batch_texts, always_add_eos=(self.pool_type == 'last'), max_length=max_length)
-            batch_dict = move_to_cuda(batch_dict)
+            batch_dict = move_to_cuda(batch_dict, self.device)
 
             with torch.cuda.amp.autocast():
                 outputs = self.model(**batch_dict)
@@ -86,6 +87,8 @@ class CustomMistralEmbedder(Embeddings):
                     embeds = F.normalize(embeds, p=2, dim=-1)
                 embeddings_batch = embeds.cpu().numpy().tolist()
                 embeddings_list.extend(embeddings_batch)
+                del batch_dict
+                del outputs
 
         return embeddings_list
 
@@ -95,8 +98,27 @@ class CustomMistralEmbedder(Embeddings):
     async def aembed_query(self, text: str) -> List[float]:
         return self.embed_query(text)
 
+def move_to_cuda(sample, device):
+    if len(sample) == 0:
+        return {}
 
-def move_to_cuda(sample):
+    def _move_to_cuda(maybe_tensor):
+        if torch.is_tensor(maybe_tensor):
+            return maybe_tensor.to(device, non_blocking=True)
+        elif isinstance(maybe_tensor, dict):
+            return {key: _move_to_cuda(value) for key, value in maybe_tensor.items()}
+        elif isinstance(maybe_tensor, list):
+            return [_move_to_cuda(x) for x in maybe_tensor]
+        elif isinstance(maybe_tensor, tuple):
+            return tuple([_move_to_cuda(x) for x in maybe_tensor])
+        elif isinstance(maybe_tensor, Mapping):
+            return type(maybe_tensor)({k: _move_to_cuda(v) for k, v in maybe_tensor.items()})
+        else:
+            return maybe_tensor
+
+    return _move_to_cuda(sample)
+
+def move_to_cuda_old(sample):
     if len(sample) == 0:
         return {}
 

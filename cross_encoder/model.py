@@ -1,13 +1,13 @@
 from transformers import RobertaTokenizer, RobertaForSequenceClassification,BertTokenizer, BertForSequenceClassification
 from torchmetrics.classification import BinaryAccuracy, BinaryPrecision, BinaryRecall
-from create_sentences_dict import ClaimSentencePairsCreator
+from create_sentences_dict import ClaimSentencePairsCreator, ClaimSentencePairsCreator_NewDb
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import pytorch_lightning as pl
 import torch
 
 
 class TextClassificationModel(pl.LightningModule):
-    def __init__(self, model_name, mode="train", **kwargs):
+    def __init__(self, model_name, mode="train",  **kwargs):
         super().__init__()
         self.model_name = model_name
         if self.model_name.startswith('roberta'):
@@ -32,9 +32,10 @@ class TextClassificationModel(pl.LightningModule):
         if mode == "predict":
             self.model.eval()
             with_title = True
-            if kwargs is not None:
+            if kwargs is not None and "with_title" in kwargs:
                 with_title = kwargs["with_title"]
-            self.claim_sentence_creator = ClaimSentencePairsCreator(sql_db_path = '/home/sander/code/thesis/hover/data/wiki_wo_links.db', with_title = with_title)
+            #self.claim_sentence_creator = ClaimSentencePairsCreator(sql_db_path = '/home/sander/code/thesis/hover/data/wiki_wo_links.db', with_title = with_title)
+            self.claim_sentence_creator = ClaimSentencePairsCreator_NewDb(sql_db_path = '/home/sander/code/thesis/hover/data/hover_with_sentences_splitted.db', with_title = with_title)
 
     def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
         if self.model_name.startswith('roberta'):
@@ -130,4 +131,37 @@ class TextClassificationModel(pl.LightningModule):
                     predicted_label = (probs > 0.5).long().cpu().numpy().tolist()
                     predictions.append((claim, text, predicted_label[1]))
 
+        return predictions
+
+    def predict_parallel(self, claim_text_pairs, return_probabilities=True):
+        with torch.no_grad():
+            claims, texts = zip(*claim_text_pairs)
+            #print("tokenization started")
+            inputs = self.tokenizer(
+                list(claims), list(texts),
+                add_special_tokens=True,
+                max_length=320,
+                padding='max_length',
+                truncation=True,
+                return_tensors='pt'
+            )
+
+            input_ids = inputs['input_ids'].to(self.device)
+            attention_mask = inputs['attention_mask'].to(self.device)
+            token_type_ids = inputs.get('token_type_ids', None)
+            if token_type_ids is not None:
+                token_type_ids = token_type_ids.to(self.device)
+            #print("prediction started")
+            outputs = self.model(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+            #print("prediction done")
+            probs = torch.sigmoid(outputs.logits).squeeze()
+
+            if return_probabilities:
+                probabilities = probs.cpu().numpy().tolist()
+                predictions = [(claim, text, prob[1]) for (claim, text), prob in zip(claim_text_pairs, probabilities)]
+            else:
+                predicted_labels = (probs > 0.5).long().cpu().numpy().tolist()
+                predictions = [(claim, text, label[1]) for (claim, text), label in zip(claim_text_pairs, predicted_labels)]
+
+        del inputs, input_ids, attention_mask, token_type_ids, outputs, probs
         return predictions

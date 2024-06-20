@@ -4,7 +4,7 @@ from transformers import StoppingCriteria, LogitsProcessor
 class StopwordLogitsProcessor(LogitsProcessor):
     def __init__(self, tokenizer, stop_words, eos_token_id):
         self.stop_word_sequences = [tokenizer.encode(word, add_special_tokens=False) for word in stop_words]
-        self.stop_word_sequences.append([13, 13, 3100, 28741, 4019, 28747])
+        self.stop_word_sequences.insert(0, [13, 13, 3100, 28741, 4019, 28747])
         self.tokenizer = tokenizer
         self.eos_token_id = eos_token_id
 
@@ -26,7 +26,7 @@ class StopwordLogitsProcessor(LogitsProcessor):
 class StopwordCriteria(StoppingCriteria):
     def __init__(self, tokenizer, stop_words):
         self.stop_word_sequences = [tokenizer.encode(word, add_special_tokens=False) for word in stop_words]
-        self.stop_word_sequences.append([13, 13, 3100, 28741, 4019, 28747])
+        self.stop_word_sequences.insert(0, [13, 13, 3100, 28741, 4019, 28747])
         print("Stop word sequences:", self.stop_word_sequences)  # Debug print
         self.tokenizer = tokenizer
 

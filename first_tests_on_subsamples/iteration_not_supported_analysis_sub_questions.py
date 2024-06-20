@@ -1,12 +1,12 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 import sys
 from pathlib import Path
 sys.path.append(str(Path("./cross_encoder").resolve()))
 from cross_encoder.model import TextClassificationModel
 from huggingface_llm_loading import TransformerLLM, create_chain, create_llm_pipeline, create_prompt, create_chain_with_postprocessor
-from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt
+from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt, add_key_entities_and_change_prompt
 from custom_mistral_embedder import CustomMistralEmbedder
 from output_parsers import EnhancedBaseClaimsOutputParser, SubQuestionsOutputParser
 from utils import load_obj, load_vectordb, save_obj
@@ -35,7 +35,7 @@ llm_question_generator = create_chain_with_postprocessor(create_prompt(template=
                         postprocessor=SubQuestionsOutputParser)
 
 
-llm_base_enhancement = create_chain_with_postprocessor(create_prompt(template=add_key_entities_refined_prompt), 
+llm_base_enhancement = create_chain_with_postprocessor(create_prompt(template=add_key_entities_and_change_prompt), 
                     llm,
                     stop=["CLAIM:", "CONTEXT:", "REFINED CLAIM:"], 
                     postprocessor=EnhancedBaseClaimsOutputParser)
@@ -76,7 +76,7 @@ def get_sorted_sentences(cross_enc, claim, retrieved_titles, do_filter, run_coun
     if do_filter and run_count > 0:
         question_sentence_pairs = cross_enc.claim_sentence_creator.filter_sentences(question_sentence_pairs, previous_iteration_sentences)
         # Die 20 Sätze aller vorherigen Iteration werden raus gefiltert -> noch mit einer threshold probieren
-    cross_enc_output = cross_enc.predict(question_sentence_pairs, return_probabilties=True)
+    cross_enc_output = cross_enc.predict(question_sentence_pairs, return_probabilities=True)
     cross_enc_output_sorted = sorted(cross_enc_output, key=lambda x: x[2], reverse=True)
     sentences_sorted = [prediction_tuple[1] for prediction_tuple in cross_enc_output_sorted]
     return sentences_sorted
@@ -84,7 +84,7 @@ def get_sorted_sentences(cross_enc, claim, retrieved_titles, do_filter, run_coun
 def get_top_sentences(sentences_per_question, sub_questions):
     max_sentences = sum([len(sentences) for sentences in sentences_per_question])
     top_sentences = []
-    num_sentences_to_pick = min(80, max_sentences)
+    num_sentences_to_pick = min(60, max_sentences)
     for index in range(num_sentences_to_pick):
         for sentences_list in sentences_per_question:
             if len(top_sentences) >= num_sentences_to_pick:
@@ -175,5 +175,5 @@ for run_count in tqdm(range(5)):
                 item["not_supported_counterpart"][f"retrieved_{run_count+1}"] = retrieved
                 #save_obj(data, "data/iterative_inspection.json")
 
-save_obj(data, "data/iterative_qualitative_analysis_not_supported_no_filter_80.json")
+save_obj(data, "data/iterative_not_supported_subquestions_no_filter_change_prompt_60.json")
 

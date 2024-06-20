@@ -1,7 +1,7 @@
 import sqlite3
 import unicodedata
 
-def connect_to_db(db_path = '../data/wiki_wo_links.db'):
+def connect_to_db(db_path = '/home/sander/code/thesis/hover/data/wiki_wo_links.db'):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     return conn, cursor
@@ -34,3 +34,24 @@ def get_text_from_doc(cursor, title):
     doc = cursor.execute("SELECT text FROM documents WHERE id = ?",
                    (unicodedata.normalize("NFD", title),)).fetchall()[0][0]
     return doc
+
+def get_all_titles(cursor):
+    cursor.execute("SELECT id FROM documents")
+    titles = cursor.fetchall()
+    return titles
+
+def create_database(db_path):
+    """Create a new SQLite database"""
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE documents (
+            title TEXT PRIMARY KEY,
+            text TEXT,
+            splitted_sentences TEXT,
+            splitted_sentences_with_title TEXT
+        );
+    ''')
+    
+    conn.commit()
+    conn.close()

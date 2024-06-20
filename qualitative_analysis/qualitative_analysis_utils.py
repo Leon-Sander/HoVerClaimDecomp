@@ -89,6 +89,7 @@ def create_html_report(df, two_hop_accuracy, three_hop_accuracy, four_hop_accura
     th, td {border: 1px solid #ddd; padding: 8px; text-align: left;}
     th {background-color: #f2f2f2; position: sticky; top: 0; z-index: 10;}
     .table-container {max-height: 400px; overflow-y: auto;}
+    .highlight-red {background-color: #ffcccc;}
   </style>
   <script>
   function toggleContent(id) {
@@ -102,18 +103,58 @@ def create_html_report(df, two_hop_accuracy, three_hop_accuracy, four_hop_accura
       button.textContent = 'Expand';
     }
   }
+
+  function generateLatex() {
+    console.log("Function is called");
+    var latexOutput = '';
+    var checkboxes = document.querySelectorAll('input.row-checkbox:checked');
+    checkboxes.forEach(function(checkbox) {
+      var row = checkbox.closest('tr');
+      var cells = row.querySelectorAll('td');
+      var claim = cells[2].innerText.trim() || 'N/A';
+
+      // Function to extract and convert HTML list items to LaTeX itemized format
+      function formatLatexItemized(text) {
+        // Assuming text is coming with HTML <li> tags, extract list items
+        var itemPattern = /<li>(.*?)<\/li>/g;
+        var match, items = [];
+        while ((match = itemPattern.exec(text)) !== null) {
+          items.push('\\\\item ' + match[1].trim());
+        }
+        if (items.length === 0) {
+          return 'N/A'; // Return 'N/A' if no items were found
+        }
+        return '\\\\begin{itemize}\\n' + items.join('\\n') + '\\n\\\\end{itemize}';
+      }
+
+      var decomposedClaims = formatLatexItemized(cells[3].innerHTML.trim());
+      var supportingFacts = formatLatexItemized(cells[4].innerHTML.trim());
+      var notFoundBase = formatLatexItemized(cells[6].innerHTML.trim()) || 'N/A';
+      var notFound = formatLatexItemized(cells[7].innerHTML.trim()) || 'N/A';
+
+      latexOutput += claim + ' & ' + decomposedClaims + ' & ' + supportingFacts + ' & ' + notFoundBase + ' & ' + notFound + ' \\\\\\\\ \\\\hline\\n';
+    });
+    document.getElementById('latexOutput').value = latexOutput;
+      // Uncheck all checkboxes after generating the LaTeX code
+    checkboxes.forEach(function(checkbox) {
+      checkbox.checked = false;
+    });
+  }
   </script>
   </head>
   <body>
-
+  <button onclick="generateLatex()">Generate LaTeX</button>
+  <textarea id="latexOutput" rows="10" cols="150"></textarea>
   <h2>Data Analysis</h2>
   <table>
     <tr>
+      <th>Checkbox</th>
       <th style="width: 50px;">Index</th>
       <th>Claim</th>
       <th>Decomposed Claims</th>
       <th>Supporting Facts</th>
       <th>Found</th>
+      <th>Not Found Base</th>
       <th>Not Found</th>
       <th style="width: 50px;">Hop Count</th>
       <th>Supported</th>
@@ -123,14 +164,18 @@ def create_html_report(df, two_hop_accuracy, three_hop_accuracy, four_hop_accura
   """
 
   for index, row in df.iterrows():
+      not_found_base_style = 'highlight-red' if row['not_found_base'] else ''
+      not_found_style = 'highlight-red' if row['not_found'] else ''
       html_content += f"""
     <tr>
+      <td><input type="checkbox" class="row-checkbox"></td>
       <td>{index + 1}</td>
       <td>{row['claim']}</td>
       <td>{row[decomposed_claims_key]}</td>
       <td>{row['supporting_facts']}</td>
       <td>{row['found']}</td>
-      <td>{row['not_found']}</td>
+      <td class="{not_found_base_style}">{row['not_found_base']}</td>
+      <td class="{not_found_style}">{row['not_found']}</td>
       <td>{row['Hop Count']}</td>
       <td>{row['Supported']}</td>
       <td>{row['Successful Retrieval']}</td>
@@ -183,3 +228,22 @@ def create_html_report(df, two_hop_accuracy, three_hop_accuracy, four_hop_accura
 
   with open(html_save_path, 'w') as file:
       file.write(html_content)
+
+"""
+  function generateLatex() {
+    console.log("Function is called");
+    var latexOutput = '';
+    var checkboxes = document.querySelectorAll('input.row-checkbox:checked');
+    checkboxes.forEach(function(checkbox) {
+      var row = checkbox.closest('tr');
+      var cells = row.querySelectorAll('td');
+      var claim = cells[2].innerText.trim() || 'N/A';
+      var decomposedClaims = cells[3].innerText.trim();
+      var supportingFacts = cells[4].innerText.trim();
+      var notFoundBase = cells[6].innerText.trim() || 'N/A';
+      var notFound = cells[7].innerText.trim() || 'N/A';
+      latexOutput += claim + ' & ' + decomposedClaims + ' & ' + supportingFacts + ' & ' + notFoundBase + ' & ' + notFound + ' \\\\\\\\ \\\\hline\\n';
+    });
+    document.getElementById('latexOutput').value = latexOutput;
+  }
+"""
