@@ -1,0 +1,18 @@
+2024-06-20 15:08:49,031 - INFO - generate_decomposition executed in 7709.22 seconds
+2024-06-20 15:08:54,720 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-06-20 15:17:28,032 - INFO - decomposed_claim_retrieval executed in 518.75 seconds
+2024-06-20 17:48:27,033 - INFO - generate_decomposition executed in 7720.91 seconds
+2024-06-20 17:48:32,641 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-06-20 17:57:16,030 - INFO - decomposed_claim_retrieval executed in 528.73 seconds
+2024-06-20 17:58:37,795 - INFO - generate_decomposition executed in 0.00 seconds
+2024-06-20 18:06:57,575 - INFO - decomposed_claim_retrieval executed in 499.48 seconds
+2024-06-20 18:08:25,036 - INFO - generate_decomposition executed in 0.00 seconds
+2024-06-20 18:18:07,981 - INFO - decomposed_claim_retrieval executed in 582.62 seconds
+2024-06-20 22:38:26,949 - INFO - generate_decomposition executed in 6229.20 seconds
+2024-06-20 22:38:36,649 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-06-20 22:48:20,089 - INFO - decomposed_claim_retrieval executed in 592.87 seconds
+2024-06-21 00:24:30,201 - INFO - generate_decomposition executed in 5686.83 seconds
+2024-06-21 00:31:40,651 - INFO - decomposed_claim_retrieval executed in 430.16 seconds
+2024-06-21 12:34:20,896 - INFO - generate_decomposition executed in 5640.70 seconds
+2024-06-21 12:34:28,470 - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2024-06-21 12:42:59,032 - INFO - decomposed_claim_retrieval executed in 517.90 seconds

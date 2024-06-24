@@ -97,7 +97,24 @@ class CustomMistralEmbedder(Embeddings):
 
     async def aembed_query(self, text: str) -> List[float]:
         return self.embed_query(text)
+    
+    @torch.no_grad()
+    def semantic_similarity(self, query, documents):
+        max_length = 4096
+        batch_dict = create_batch_dict(self.tokenizer, [query, documents], always_add_eos=(self.pool_type == 'last'), max_length=max_length)
+        batch_dict = move_to_cuda(batch_dict, self.device)
 
+        with torch.cuda.amp.autocast():
+            outputs = self.model(**batch_dict)
+            embeds = pool(outputs.last_hidden_state, batch_dict['attention_mask'], self.pool_type)
+            if self.l2_normalize:
+                embeds = F.normalize(embeds, p=2, dim=-1)
+        del batch_dict
+        del outputs
+        semantic_similarity_score = ((embeds[0] @ embeds[1].T) * 100)
+        del embeds
+        return semantic_similarity_score.cpu().numpy().tolist()
+    
 def move_to_cuda(sample, device):
     if len(sample) == 0:
         return {}

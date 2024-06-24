@@ -7,7 +7,7 @@ import torch
 from langchain.prompts import PromptTemplate
 from output_parsers import *
 from torch.nn import DataParallel
-from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt_4shot
+from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt_4shot, decompose_without_redundancy
 
 
 def create_prompt(template):
@@ -45,7 +45,7 @@ def create_chain_with_postprocessor(prompt, llm_pipeline, stop=["MULTI-HOP CLAIM
 
 class TransformerLLM():
 
-    def __init__(self, model_id, device_map, decomposed_template) -> None:
+    def __init__(self, model_id, device_map) -> None:
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -73,7 +73,7 @@ class TransformerLLM():
 
         decomposition_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "DECOMPOSED:"]
         self.logits_processor_decomposition = LogitsProcessorList([StopwordLogitsProcessor(self.tokenizer, decomposition_stop_words, self.tokenizer.eos_token_id)])
-        self.prompt_template_decomposition = decomposed_template #decompose_9shot_instruct
+        self.prompt_template_decomposition = decompose_without_redundancy
         self.output_parser_decomposition = TransformerDecomposedClaimsOutputParser()
         
 

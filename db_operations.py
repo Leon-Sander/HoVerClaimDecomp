@@ -25,6 +25,11 @@ def get_doc_by_title(cursor, title):
     output = cursor.fetchone()
     return output
 
+def get_doc_by_title_new_db(cursor, title):
+    output = cursor.execute("SELECT text FROM documents WHERE title=?", (title,))
+    output = output.fetchone()[0]
+    return output
+
 def get_db_column_names(cursor):
     cursor.execute("PRAGMA table_info('documents');")
     columns = cursor.fetchall()
