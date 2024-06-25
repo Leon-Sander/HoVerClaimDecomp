@@ -12,10 +12,10 @@ logging.basicConfig(filename='pipeline_timing.log', level=logging.INFO, format='
 
 if __name__ == "__main__":
     #data = load_obj("data/iteration_full_data.json")
-    data = load_obj("data/iterative_FULL_DATASET_with_questions_NEW_ZWISCHENERGEBNIS.json")
+    data = load_obj("data/iterative_FULL_DATASET_with_questions_NEW_ZWISCHENERGEBNIS3.json")
 
     try:
-        for run_count in tqdm(range(4), desc='Run Count'):
+        for run_count in tqdm(range(2,4), desc='Run Count'):
             logging.info(f'Starting run count: {run_count}')
             logging.info('Generating subquestions')
             data = generate_subquestions(data, run_count)

@@ -104,6 +104,50 @@ def claim_refinement(data, run_count):
     return data
 
 @log_time
+def generate_decomposition(data, run_count):
+    model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"
+    llm1 = TransformerLLM(model_id, device_map="cuda:0")
+    llm2 = TransformerLLM(model_id, device_map="cuda:1")
+    print("llm Loaded")
+    try:
+        for hop_count in data:
+            if run_count <= int(hop_count) - 1:
+                for key in data[hop_count]:
+                    all_claims = []
+                    indices = []
+                    for idx, item in enumerate(data[hop_count][key]):
+                        if f"decomposed_claims_{run_count}" not in item:
+                            all_claims.append(item[f"claim_{run_count}"])
+                            indices.append(idx) 
+
+                    if not all_claims:
+                        print(f"No decompositions to generate for {run_count}, {hop_count}, {key}")
+                        continue
+
+                    for i in tqdm(range(0, len(all_claims), 50), desc=f'Decomposition {run_count}, {hop_count}, {key}'):
+                        batch_claims = all_claims[i:i + 50]
+                        batch_indices = indices[i:i + 50]
+                        decomposed_batch = run_in_parallel(claims=batch_claims, task_type="decomposition",llm1=llm1, llm2=llm2)
+                        
+                        for idx, decomposed_claims in enumerate(decomposed_batch):
+                            original_idx = batch_indices[idx]
+                            data[hop_count][key][original_idx][f"decomposed_claims_{run_count}"] = decomposed_claims
+                            data[hop_count][key][original_idx][f"decomposed_claims_retrieval_{run_count}"] = []
+                        del decomposed_batch
+
+                    torch.cuda.empty_cache()
+                    gc.collect()
+    except Exception as e:
+        save_obj(data, "data/ZWISCHENERGEBNIS.json")
+        logging.info('Zwischenergebnis saved under data/ZWISCHENERGEBNIS.json')
+        print(traceback.format_exc())
+    del llm1
+    del llm2
+    torch.cuda.empty_cache()
+    gc.collect()
+    return data
+
+@log_time
 def generate_subquestions(data, run_count):
     model_id="mistralai/Mixtral-8x7B-Instruct-v0.1"
     llm1 = TransformerLLM(model_id, device_map="cuda:0")
@@ -293,16 +337,15 @@ def reintegrate_cross_enc_results_for_questions(data, results, info_indices, run
     try:
         result_index = 0  # Index to track the position in results
         for hop_count, key, item_idx, question_idx, num_pairs in info_indices:
-            item = data[hop_count][key][item_idx]
             relevant_results = results[result_index:result_index + num_pairs]
             prediction_sorted = sorted(relevant_results, key=lambda x: x[2], reverse=True)
             sentences_sorted = [sentence[1] for sentence in prediction_sorted][:threshold]
 
             #sub_question_top_sentences_0
-            if f"sub_question_sentences_{run_count}" not in item:
-                item[f"sub_question_sentences_{run_count}"] = []
+            if f"sub_question_sentences_{run_count}" not in data[hop_count][key][item_idx]:
+                data[hop_count][key][item_idx][f"sub_question_sentences_{run_count}"] = []
     
-            item[f"sub_question_sentences_{run_count}"].append(sentences_sorted)
+            data[hop_count][key][item_idx][f"sub_question_sentences_{run_count}"].append(sentences_sorted)
 
             result_index += num_pairs
         return data
@@ -361,17 +404,26 @@ def create_top_sentences(data, run_count, threshold=60):
                     if f"top_sentences_{run_count}" in item:
                         continue
                     
-                    top_sentences_list = []
-                    for index in range(threshold):
-                        if len(top_sentences_list) >= threshold:
-                            break
-                        for sentences_list in item[f"sub_question_sentences_{run_count}"]:
+                    try:
+                        top_sentences_list = []
+                        for index in range(threshold):
                             if len(top_sentences_list) >= threshold:
                                 break
-                            if index < len(sentences_list):
-                                if sentences_list[index] not in top_sentences_list:
-                                    top_sentences_list.append(sentences_list[index])
+                            for sentences_list in item[f"sub_question_sentences_{run_count}"]:
+                                if len(top_sentences_list) >= threshold:
+                                    break
+                                if index < len(sentences_list):
+                                    if sentences_list[index] not in top_sentences_list:
+                                        top_sentences_list.append(sentences_list[index])
 
 
-                    item[f"top_sentences_{run_count}"] = top_sentences_list
+                        item[f"top_sentences_{run_count}"] = top_sentences_list
+                    except KeyError:
+                        uid = item["uid"]
+                        logging.info(f"Error in top sentence generation, item {uid}, hop_count {hop_count}, key {key}, run_count {run_count} had an errounous generation, setting to previous run results.")
+                        item[f"claim_{run_count}"] = item[f"claim_{run_count-1}"]
+                        item[f"retrieved_{run_count}"] = item[f"retrieved_{run_count-1}"]
+                        item[f"sub_questions_{run_count}"] = item[f"sub_questions_{run_count-1}"]
+                        item[f"sub_question_retrieval_{run_count}"] = item[f"sub_question_retrieval_{run_count-1}"]
+                        item[f"top_sentences_{run_count}"] = item[f"top_sentences_{run_count-1}"]
     return data
