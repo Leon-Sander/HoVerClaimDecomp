@@ -62,40 +62,49 @@ def claim_refinement(data, run_count):
     llm1 = TransformerLLM(model_id, device_map="cuda:0")
     llm2 = TransformerLLM(model_id, device_map="cuda:1")
     print("llm Loaded")
-    try:
-        for hop_count in data:
-            if run_count <= int(hop_count) - 1:
-                for key in data[hop_count]:
-                    for j in tqdm(range(0, len(data[hop_count][key]), 10), desc=f'Refining Base Claims {run_count}, {hop_count}, {key}'):
-                        base_claims_context = []
-                        indices = []
-                        # Collect claims and sentences for refinement only if they haven't been refined for the next run_count
-                        for k in range(10):
-                            idx = j + k
-                            if idx < len(data[hop_count][key]):
-                                if f"claim_{run_count + 1}" in data[hop_count][key][idx]:
-                                    continue
+
+    for hop_count in data:
+        if run_count <= int(hop_count) - 1:
+            for key in data[hop_count]:
+                for j in tqdm(range(0, len(data[hop_count][key]), 10), desc=f'Refining Base Claims {run_count}, {hop_count}, {key}'):
+                    base_claims_context = []
+                    indices = []
+                    # Collect claims and sentences for refinement only if they haven't been refined for the next run_count
+                    for k in range(10):
+                        idx = j + k
+                        if idx < len(data[hop_count][key]):
+                            if f"claim_{run_count + 1}" in data[hop_count][key][idx]:
+                                continue
+                            try:
                                 claim = data[hop_count][key][idx][f"claim_{run_count}"]
                                 top_sentences = data[hop_count][key][idx][f"top_sentences_{run_count}"]
-                                top_sentences = "\n".join(top_sentences)
-                                base_claims_context.append((claim, top_sentences))
-                                indices.append(idx)
-                        
-                        if base_claims_context:  # Check if there are any claims to refine
+                            except KeyError:
+                                logging.info(f'Error in claim_refinement, data["{hop_count}"]["{key}"]["{idx}"]')
+                                logging.info(traceback.format_exc())
+                                continue
+                            top_sentences = "\n".join(top_sentences)
+                            base_claims_context.append((claim, top_sentences))
+                            indices.append(idx)
+
+                    
+                    if base_claims_context:  # Check if there are any claims to refine
+                        try:
                             enhanced_claims = run_in_parallel(claims=base_claims_context, task_type="claim_refinement", llm1=llm1, llm2=llm2)
+                        except Exception as e:
+                            logging.info(f'Error in claim_refinement, data["{hop_count}"]["{key}"]')
+                            logging.info(traceback.format_exc())
+                            save_obj(data, "data/ZWISCHENERGEBNIS.json")
+                            sys.exit()
                             
-                            # Update enhanced
-                            for l, enhanced_claim in enumerate(enhanced_claims):
-                                data[hop_count][key][indices[l]][f"claim_{run_count + 1}"] = enhanced_claim
-                            del enhanced_claims
-                        else:
-                            continue
-                        torch.cuda.empty_cache()
-                        gc.collect()
-    except Exception as e:
-        save_obj(data, "data/ZWISCHENERGEBNIS.json")
-        logging.info('Zwischenergebnis saved under data/ZWISCHENERGEBNIS.json')
-        print(traceback.format_exc())
+                        # Update enhanced
+                        for l, enhanced_claim in enumerate(enhanced_claims):
+                            data[hop_count][key][indices[l]][f"claim_{run_count + 1}"] = enhanced_claim
+                        del enhanced_claims
+                    else:
+                        continue
+                    torch.cuda.empty_cache()
+                    gc.collect()
+
 
     del llm1
     del llm2
@@ -159,13 +168,13 @@ def generate_subquestions(data, run_count):
                 for key in data[hop_count]:
                     all_claims = []
                     indices = []
-                    for idx, item in enumerate(data[hop_count][key]):
+                    for item_index, item in enumerate(data[hop_count][key]):
                         if f"sub_questions_{run_count}" in item:
                             if item[f"sub_questions_{run_count}"]:
                                 continue
 
                         all_claims.append(item[f"claim_{run_count}"])
-                        indices.append(idx)
+                        indices.append(item_index)
 
                     if not all_claims:
                         print(f"No subquestions to generate for {run_count}, {hop_count}, {key}")
@@ -177,10 +186,10 @@ def generate_subquestions(data, run_count):
                         sub_questions_batch = run_in_parallel(claims=batch_claims, task_type="subquestion_generation",llm1=llm1, llm2=llm2)
                         
                         # Collect sub-questions and prepare base claim enhancement context
-                        for idx, sub_questions in enumerate(sub_questions_batch):
-                            original_idx = batch_indices[idx]
-                            data[hop_count][key][original_idx][f"sub_questions_{run_count}"] = sub_questions
-                            data[hop_count][key][original_idx][f"sub_question_retrieval_{run_count}"] = []
+                        for item_index, sub_questions in enumerate(sub_questions_batch):
+                            original_item_index = batch_indices[item_index]
+                            data[hop_count][key][original_item_index][f"sub_questions_{run_count}"] = sub_questions
+                            data[hop_count][key][original_item_index][f"sub_question_retrieval_{run_count}"] = []
                         del sub_questions_batch
 
                     torch.cuda.empty_cache()
@@ -200,26 +209,30 @@ def subquestion_retrieval(data, run_count):
     embedder = CustomMistralEmbedder(gpu_count=1, batch_size=1, device="cuda:0")
     vector_db = load_vectordb(embedder, "chroma_db_mistral", "wiki_data")
     print("Embeder and Vector Db loaded")
-    try:
-        for hop_count in data:
-            if run_count <= int(hop_count) - 1:
-                for key in data[hop_count]:
-                    for item in data[hop_count][key]:
-                        if f"sub_question_retrieval_{run_count}" in item:
-                            if item[f"sub_question_retrieval_{run_count}"]:
-                                continue
-
+    
+    for hop_count in data:
+        if run_count <= int(hop_count) - 1:
+            for key in data[hop_count]:
+                for item_index, item in enumerate(data[hop_count][key]):
+                    if f"sub_question_retrieval_{run_count}" in item:
+                        if item[f"sub_question_retrieval_{run_count}"]:
+                            continue
+                    try:
                         for question in item[f"sub_questions_{run_count}"]:
                             query = embedder.get_detailed_instruct(query=question, task_description=embedder.question_task)
                             db_output = vector_db.similarity_search(query, k=100)
                             retrieved = [doc.metadata["title"] for doc in db_output]
                             item[f"sub_question_retrieval_{run_count}"].append(retrieved)
-                    torch.cuda.empty_cache()
-                    gc.collect()
-    except Exception as e:
-        save_obj(data, "data/ZWISCHENERGEBNIS.json")
-        logging.info('Zwischenergebnis saved under data/ZWISCHENERGEBNIS.json')
-        print(traceback.format_exc())
+                    except Exception as e:
+                        item[f"sub_question_retrieval_{run_count}"] = []
+                        logging.info(f'base_retrieval_for_next_iter error data["{hop_count}"]["{key}"]["{item_index}"]')
+                        logging.info(traceback.format_exc())
+                        print(traceback.format_exc())
+                        continue
+
+                torch.cuda.empty_cache()
+                gc.collect()
+
     del embedder
     del vector_db
     torch.cuda.empty_cache()
@@ -234,21 +247,24 @@ def base_retrieval_for_next_iter(data, run_count):
     embedder = CustomMistralEmbedder(gpu_count=1, batch_size=1, device="cuda:0")
     vector_db = load_vectordb(embedder, "chroma_db_mistral", "wiki_data")
     print("Embeder and Vector Db loaded")
-    try:
-        for hop_count in data:
-            if run_count <= int(hop_count):
-                for key in data[hop_count]:
-                    for item in data[hop_count][key]:
-                        if f"retrieved_{run_count + 1}" in item:
+
+    for hop_count in data:
+        if run_count <= int(hop_count):
+            for key in data[hop_count]:
+                for item_index, item in enumerate(data[hop_count][key]):
+                    if f"retrieved_{run_count + 1}" in item:
+                        if item[f"retrieved_{run_count + 1}"]:
                             continue
+                    try:
                         query = embedder.get_detailed_instruct(query=item[f"claim_{run_count + 1}"], task_description=embedder.task)
                         db_output = vector_db.similarity_search(query, k=100)
                         retrieved = [doc.metadata["title"] for doc in db_output]
                         item[f"retrieved_{run_count + 1}"] = retrieved
-    except Exception as e:
-        save_obj(data, "data/ZWISCHENERGEBNIS.json")
-        logging.info('Zwischenergebnis saved under data/ZWISCHENERGEBNIS.json')
-        print(traceback.format_exc())
+                    except Exception as e:
+                        #save_obj(data, "data/ZWISCHENERGEBNIS.json")
+                        logging.info(f'base_retrieval_for_next_iter error data["{hop_count}"]["{key}"]["{item_index}"]')
+                        logging.info(traceback.format_exc())
+                        print(traceback.format_exc())
     del embedder
     del vector_db
     torch.cuda.empty_cache()
@@ -334,25 +350,27 @@ def cross_encode(data, batch_size, run_count, threshold):
 
 
 def reintegrate_cross_enc_results_for_questions(data, results, info_indices, run_count, threshold):
+    result_index = 0  # Index to track the position in results
     try:
-        result_index = 0  # Index to track the position in results
         for hop_count, key, item_idx, question_idx, num_pairs in info_indices:
-            relevant_results = results[result_index:result_index + num_pairs]
-            prediction_sorted = sorted(relevant_results, key=lambda x: x[2], reverse=True)
-            sentences_sorted = [sentence[1] for sentence in prediction_sorted][:threshold]
+            
+                relevant_results = results[result_index:result_index + num_pairs]
+                prediction_sorted = sorted(relevant_results, key=lambda x: x[2], reverse=True)
+                sentences_sorted = [sentence[1] for sentence in prediction_sorted][:threshold]
 
-            #sub_question_top_sentences_0
-            if f"sub_question_sentences_{run_count}" not in data[hop_count][key][item_idx]:
-                data[hop_count][key][item_idx][f"sub_question_sentences_{run_count}"] = []
-    
-            data[hop_count][key][item_idx][f"sub_question_sentences_{run_count}"].append(sentences_sorted)
+                #sub_question_top_sentences_0
+                if f"sub_question_sentences_{run_count}" not in data[hop_count][key][item_idx]:
+                    data[hop_count][key][item_idx][f"sub_question_sentences_{run_count}"] = []
+        
+                data[hop_count][key][item_idx][f"sub_question_sentences_{run_count}"].append(sentences_sorted)
 
-            result_index += num_pairs
-        return data
+                result_index += num_pairs
     except Exception as e:
+        logging.info(f'Error in reintegrate_cross_enc_results_for_questions data["{hop_count}"]["{key}"]["{item_idx}"] , question_idx: {question_idx}')
+        logging.info(traceback.format_exc())
         save_obj(data, "data/ZWISCHENERGEBNIS.json")
-        logging.info('Zwischenergebnis saved under data/ZWISCHENERGEBNIS.json')
-        print(traceback.format_exc())
+    return data
+
         
 def create_batches_cross_enc_for_subquestions(data, batch_size, run_count):
     batches = []
@@ -364,6 +382,12 @@ def create_batches_cross_enc_for_subquestions(data, batch_size, run_count):
         if run_count <= int(hop_count) - 1:
             for key in data[hop_count]:
                 for item_idx, item in enumerate(data[hop_count][key]):
+                    if f"sub_questions_{run_count}" not in item:
+                        logging.info(f'Error in create_batches_cross_enc_for_subquestions, data["{hop_count}"]["{key}"]["{item_idx}"] does not contain sub_questions_{run_count}')
+                        continue
+                    if f"sub_question_retrieval_{run_count}" == []:
+                        logging.info(f'Error in create_batches_cross_enc_for_subquestions, data["{hop_count}"]["{key}"]["{item_idx}"]["sub_question_retrieval_{run_count}"] is empty.')
+                        continue
                     for question_idx, question in enumerate(item[f"sub_questions_{run_count}"]):
                         if f"sub_question_sentences_{run_count}" in item:
                             if len(item[f"sub_question_sentences_{run_count}"]) >= question_idx + 1:
@@ -400,7 +424,7 @@ def create_top_sentences(data, run_count, threshold=60):
     for hop_count in data:
         if run_count <= int(hop_count) - 1:
             for key in data[hop_count]:
-                for item in data[hop_count][key]:
+                for item_index, item in enumerate(data[hop_count][key]):
                     if f"top_sentences_{run_count}" in item:
                         continue
                     
@@ -420,10 +444,11 @@ def create_top_sentences(data, run_count, threshold=60):
                         item[f"top_sentences_{run_count}"] = top_sentences_list
                     except KeyError:
                         uid = item["uid"]
-                        logging.info(f"Error in top sentence generation, item {uid}, hop_count {hop_count}, key {key}, run_count {run_count} had an errounous generation, setting to previous run results.")
-                        item[f"claim_{run_count}"] = item[f"claim_{run_count-1}"]
-                        item[f"retrieved_{run_count}"] = item[f"retrieved_{run_count-1}"]
-                        item[f"sub_questions_{run_count}"] = item[f"sub_questions_{run_count-1}"]
-                        item[f"sub_question_retrieval_{run_count}"] = item[f"sub_question_retrieval_{run_count-1}"]
-                        item[f"top_sentences_{run_count}"] = item[f"top_sentences_{run_count-1}"]
+                        logging.info(f'Error in create_top_sentences, item {uid}, data["{hop_count}"]["{key}"]["{item_index}"]')#, setting to previous run results.")
+                        logging.info(traceback.format_exc())
+                        #item[f"claim_{run_count}"] = item[f"claim_{run_count-1}"]
+                        #item[f"retrieved_{run_count}"] = item[f"retrieved_{run_count-1}"]
+                        #item[f"sub_questions_{run_count}"] = item[f"sub_questions_{run_count-1}"]
+                        #item[f"sub_question_retrieval_{run_count}"] = item[f"sub_question_retrieval_{run_count-1}"]
+                        #item[f"top_sentences_{run_count}"] = item[f"top_sentences_{run_count-1}"]
     return data
