@@ -74,7 +74,8 @@ def claim_refinement(data, run_count):
                         idx = j + k
                         if idx < len(data[hop_count][key]):
                             if f"claim_{run_count + 1}" in data[hop_count][key][idx]:
-                                continue
+                                if data[hop_count][key][idx][f"claim_{run_count + 1}"]:
+                                    continue
                             try:
                                 claim = data[hop_count][key][idx][f"claim_{run_count}"]
                                 top_sentences = data[hop_count][key][idx][f"top_sentences_{run_count}"]
@@ -249,7 +250,7 @@ def base_retrieval_for_next_iter(data, run_count):
     print("Embeder and Vector Db loaded")
 
     for hop_count in data:
-        if run_count <= int(hop_count):
+        if run_count <= int(hop_count) - 1:
             for key in data[hop_count]:
                 for item_index, item in enumerate(data[hop_count][key]):
                     if f"retrieved_{run_count + 1}" in item:
