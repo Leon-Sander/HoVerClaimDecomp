@@ -215,6 +215,23 @@ class ClaimSentencePairsCreator_NewDb:
         return all_sentences
 
 
+    def get_supporting_sentences(self, item, retrieval_key):
+        """
+        Returns all supporting sentences that are within the retrieved documents
+        """
+        supporting_sentences = []
+        for title, sentence_level in item["supporting_facts"]:
+            if title in item[retrieval_key]:
+                output = self.cursor.execute("SELECT splitted_sentences_with_title FROM documents WHERE title=?", (title,))
+                sentences = output.fetchone()[0].split('\n\n')
+                try:
+                    sentence = sentences[sentence_level]
+                except:
+                    sentence = sentences[sentence_level -1]
+                supporting_sentences.append(sentence)
+
+        return supporting_sentences
+
 
 
 

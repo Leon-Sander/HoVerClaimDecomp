@@ -95,6 +95,7 @@ def claim_refinement(data, run_count):
                             logging.info(f'Error in claim_refinement, data["{hop_count}"]["{key}"]')
                             logging.info(traceback.format_exc())
                             save_obj(data, "data/ZWISCHENERGEBNIS.json")
+                            logging.info('Zwischenergebnis saved under data/ZWISCHENERGEBNIS.json')
                             sys.exit()
                             
                         # Update enhanced
@@ -153,6 +154,32 @@ def generate_decomposition(data, run_count):
         print(traceback.format_exc())
     del llm1
     del llm2
+    torch.cuda.empty_cache()
+    gc.collect()
+    return data
+
+@log_time
+def decomposed_claim_retrieval(data, run_count):
+    embedder = CustomMistralEmbedder(gpu_count=1, batch_size=1, device="cuda:0")
+    vector_db = load_vectordb(embedder, "chroma_db_mistral", "wiki_data")
+    print("Embeder and Vector Db loaded")
+    for hop_count in data:
+        if run_count <= int(hop_count):
+            for key in data[hop_count]:
+                for item in data[hop_count][key]:
+                    if f"decomposed_claims_retrieval_{run_count}" in item:
+                        if item[f"decomposed_claims_retrieval_{run_count}"]:
+                            continue
+
+                    for claim in item[f"decomposed_claims_{run_count}"]:
+                        query = embedder.get_detailed_instruct(query=claim, task_description=embedder.task)
+                        db_output = vector_db.similarity_search(query, k=100)
+                        retrieved = [doc.metadata["title"] for doc in db_output]
+                        item[f"decomposed_claims_retrieval_{run_count}"].append(retrieved)
+                torch.cuda.empty_cache()
+                gc.collect()
+    del embedder
+    del vector_db
     torch.cuda.empty_cache()
     gc.collect()
     return data
@@ -221,7 +248,7 @@ def subquestion_retrieval(data, run_count):
                     try:
                         for question in item[f"sub_questions_{run_count}"]:
                             query = embedder.get_detailed_instruct(query=question, task_description=embedder.question_task)
-                            db_output = vector_db.similarity_search(query, k=100)
+                            db_output = vector_db.similarity_search(query, k=1000)
                             retrieved = [doc.metadata["title"] for doc in db_output]
                             item[f"sub_question_retrieval_{run_count}"].append(retrieved)
                     except Exception as e:
@@ -286,6 +313,9 @@ def create_batches_cross_enc(data, batch_size, run_count):
         if run_count <= int(hop_count) - 1:
             for key in data[hop_count]:
                 for item_idx, item in enumerate(data[hop_count][key]):
+                    if f"top_sentences_{run_count}" in item:
+                        if item[f"top_sentences_{run_count}"]:
+                            continue
                     claim = item[f"claim_{run_count}"]
                     retrieved = item[f"retrieved_{run_count}"]
                     claim_sentence_pairs = claim_sentence_creator.create_claim_sentence_pairs(claim=claim, titles=retrieved)
@@ -333,9 +363,9 @@ def reintegrate_cross_enc_results(data, results, info_indices, run_count, thresh
             item = data[hop_count][key][item_idx]
             relevant_results = results[result_index:result_index + num_pairs]
             prediction_sorted = sorted(relevant_results, key=lambda x: x[2], reverse=True)
-            sentences_sorted = [sentence[1] for sentence in prediction_sorted][:threshold]
-            
-            item[f"top_sentences_{run_count}"] = sentences_sorted
+            sentences_sorted = [sentence[1] for sentence in prediction_sorted]
+            item[f"all_sentences_sorted_{run_count}"] = sentences_sorted
+            item[f"top_sentences_{run_count}"] = sentences_sorted[:threshold]
             result_index += num_pairs
         return data
     except Exception as e:

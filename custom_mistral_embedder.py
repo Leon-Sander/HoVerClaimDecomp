@@ -111,7 +111,17 @@ class CustomMistralEmbedder(Embeddings):
                 embeds = F.normalize(embeds, p=2, dim=-1)
         del batch_dict
         del outputs
-        semantic_similarity_score = ((embeds[0] @ embeds[1].T) * 100)
+        #semantic_similarity_score = ((embeds[0] @ embeds[1].T) * 100)
+        norm_a = torch.norm(embeds[0])
+        norm_b = torch.norm(embeds[1])
+        normalized_a = embeds[0] / norm_a
+        normalized_b = embeds[1] / norm_b
+
+        # Compute cosine similarity
+        cosine_similarity = torch.dot(normalized_a, normalized_b)
+
+        # Optionally multiply by 100 if you want to scale it to a percentage
+        semantic_similarity_score = cosine_similarity * 100
         del embeds
         return semantic_similarity_score.cpu().numpy().tolist()
     

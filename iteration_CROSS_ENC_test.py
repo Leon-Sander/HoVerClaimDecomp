@@ -11,7 +11,7 @@ logging.basicConfig(filename='threshold_tests_timing.log', level=logging.INFO, f
 
 if __name__ == "__main__":
     try:
-        for threshold in tqdm([60, 80, 125, 300],desc="Thresholds"): #5, 10, 20, 
+        for threshold in tqdm([60],desc="Thresholds"): #5, 10, 20,     , 80, 125, 300
             data = load_obj("data/iteration_full_data.json")
             for run_count in range(1):
                 data = cross_encode(data, batch_size=10, run_count=run_count, threshold=threshold)

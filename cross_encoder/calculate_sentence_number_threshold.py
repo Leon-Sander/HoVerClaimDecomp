@@ -6,7 +6,7 @@ from pathlib import Path
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 sys.path.append(str(Path("../").resolve()))
 from utils import load_obj, save_obj
-from cross_encoder.create_sentences_dict import ClaimSentencePairsCreator
+from cross_encoder.create_sentences_dict import ClaimSentencePairsCreator, ClaimSentencePairsCreator_NewDb
 from cross_encoder.model import TextClassificationModel
 
 from sentence_transformers import CrossEncoder
@@ -82,6 +82,25 @@ def calculate_percentages_refined(numbers : list[int],thresholds: list[int]):
     for threshold in thresholds:
         percentages[threshold] = percentage_of_numbers_below_threshold(numbers, threshold)
     return percentages
+
+def baseline_eval(data):
+    new_claim_sentence_creator = ClaimSentencePairsCreator_NewDb()
+    data = load_obj("data/mistral_retrieval_output_dev_100.json")
+    total_supporting_sentences = 0
+    found_supporting_sentences = 0
+    for obj in tqdm(data):
+        claim_sentence_pairs = new_claim_sentence_creator.get_splitted_sentences(obj["retrieved"])
+        supporting_sentences = new_claim_sentence_creator.get_supporting_sentences(obj, "retrieved")
+        top60 = claim_sentence_pairs[:60] 
+        
+        for sentence in supporting_sentences:
+            if sentence in top60:
+                found_supporting_sentences += 1
+            total_supporting_sentences += 1
+
+
+    print(f"From all the supporting sentences within the 300 sentences, {found_supporting_sentences} were found in the top 60 sentences. That is {found_supporting_sentences/total_supporting_sentences*100}%")
+
 
 if __name__ == "__main__":
     #model = CrossEncoder('cross-encoder/qnli-electra-base')

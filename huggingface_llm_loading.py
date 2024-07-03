@@ -7,7 +7,7 @@ import torch
 from langchain.prompts import PromptTemplate
 from output_parsers import *
 from torch.nn import DataParallel
-from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt_4shot, decompose_without_redundancy
+from prompt_templates import sub_question_prompt, add_key_entities_refined_prompt_4shot, decompose_9shot_instruct,decompose_without_redundancy, decompose_entity_based
 
 
 def create_prompt(template):
@@ -60,20 +60,20 @@ class TransformerLLM():
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        subquestion_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "QUESTIONS:", "QUESTIONS: ", "\nQUESTIONS: ", ",\nQUESTIONS:"]
+        subquestion_stop_words = ["\n\nCLAIM:", "CLAIM:", "\nCLAIM: ", "CLAIM: ", "QUESTIONS:", "QUESTIONS: ", "\nQUESTIONS: ", ",\nQUESTIONS:"]
         logits_processor = StopwordLogitsProcessor(self.tokenizer, subquestion_stop_words, self.tokenizer.eos_token_id)
         self.logits_processor_subquestions = LogitsProcessorList([logits_processor])
         self.prompt_template_subquestions = sub_question_prompt
         self.output_parser_subquestions = TransformerSubQuestionOutputParser()
 
-        claim_refinement_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "REFINED:"]
+        claim_refinement_stop_words = ["\n\nCLAIM:", "CLAIM:", "\nCLAIM: ", "CLAIM: ", "REFINED:"]
         self.logits_processor_claim_refinement = LogitsProcessorList([StopwordLogitsProcessor(self.tokenizer, claim_refinement_stop_words, self.tokenizer.eos_token_id)])
         self.prompt_template_claim_refinement = add_key_entities_refined_prompt_4shot
         self.output_parser_claim_refinement = TransformerClaimRefinementOutputParser()
 
-        decomposition_stop_words = ["\n\nCLAIM:", "CLAIM:","\n\nCLAIM: ", "\nCLAIM: ", "CLAIM: ", "DECOMPOSED:"]
+        decomposition_stop_words = ["\n\nCLAIM:", "CLAIM:", "\nCLAIM: ", "CLAIM: ", "DECOMPOSED:"]
         self.logits_processor_decomposition = LogitsProcessorList([StopwordLogitsProcessor(self.tokenizer, decomposition_stop_words, self.tokenizer.eos_token_id)])
-        self.prompt_template_decomposition = decompose_without_redundancy
+        self.prompt_template_decomposition = decompose_entity_based
         self.output_parser_decomposition = TransformerDecomposedClaimsOutputParser()
         
 

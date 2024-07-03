@@ -54,6 +54,129 @@ America America was written by a person who is both an actor and director.
 CLAIM: {claim}
 DECOMPOSED:"""
 
+decompose_4shot_instruct = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, your goal is to decompose it down into simpler, standalone claims.
+Each decomposed claim should:
+
+1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
+2. Isolate Key Concepts and Relationships: Highlight main subjects, actions, and notable attributes to ensure the vectors generated from these claims closely align with those of potential matching documents.
+3. Ensure Standalone Validity: Each claim must be understandable and searchable without reference to other claims, containing all necessary information for retrieval.
+4. NOT ADD ANY INFORMATION, WHICH IS NOT PRESENT IN THE multi-hop claim, ONLY USE INFORMATION GIVEN IN THE multi-hop claim.
+5. Be separated with a newline.
+[/INST]
+###
+CLAIM: The musician that signed Godhead (band) to their label and another singer are both American singer, songwriters. Second Hand Life is the tenth solo studio album by this other singer.
+DECOMPOSED: An American singer and songwriter signed the band Godhead to their label.
+"Second Hand Life" is the tenth solo studio album released by an American singer and songwriter.
+
+CLAIM: Dana White is the president of the organization that Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+DECOMPOSED: Dana White is the president of the organization where Forrest Griffin vs. Stephan Bonnar fought.
+Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+
+CLAIM: A species related to Xanthosoma and Coronilla are both flowering plants.
+DECOMPOSED: A species related to Xanthosoma is a flowering plant.
+Coronilla is a flowering plant.
+
+CLAIM: The Lusty Men is a western directed by this man. He and the writer of America America are both actors and directors.
+DECOMPOSED: The Lusty Men is a western directed by an american man who is both an actor and director.
+America America was written by a person who is both an actor and director.
+###
+CLAIM: {claim}
+DECOMPOSED:"""
+
+decompose_9shot_noinstruct = """<s>
+CLAIM: The musician that signed Godhead (band) to their label and another singer are both American singer, songwriters. Second Hand Life is the tenth solo studio album by this other singer.
+DECOMPOSED: An American singer and songwriter signed the band Godhead to their label.
+"Second Hand Life" is the tenth solo studio album released by an American singer and songwriter.
+
+CLAIM: Of the two films, Summer Wars and The Secret of Kells, the 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+DECOMPOSED: The film Summer Wars might be a 2009 stop-motion animated film from japan.
+The film The Secret of Kells might be a 2009 stop-motion animated film from japan.
+The 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+
+CLAIM: The actress that starred as a parent in Sky High (2005 film) is married to one of the subjects of film-critic Nigel Andrews' books. She also starred in a 1994 film about a pregnant woman who is stranded at a trading post during the American Civil War.
+DECOMPOSED: An actress starred as a parent in the 2005 film Sky High.
+The actress who starred as a parent in the 2005 film Sky High is married to one of the subjects of film-critic Nigel Andrews' books.
+The actress who starred as a parent in the 2005 film Sky High also starred in a 1994 film about a pregnant woman who is stranded at a trading post during the American Civil War.
+
+CLAIM: Dana White is the president of the organization that Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+DECOMPOSED: Dana White is the president of the organization where Forrest Griffin vs. Stephan Bonnar fought.
+Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+
+CLAIM: The home of Sir John Cutts who died in 1615 is a house at a parish 18.7 miles from central London.
+DECOMPOSED: The home of Sir John Cutts is a house at a parish 18.7 miles from central London.
+Sir John Cutts died in 1615.
+
+CLAIM: A species related to Xanthosoma and Coronilla are both flowering plants.
+DECOMPOSED: A species related to Xanthosoma is a flowering plant.
+Coronilla is a flowering plant.
+
+CLAIM: Hey Monday was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010' alongside The Cab discography and Never Shout Never.
+DECOMPOSED: Hey Monday was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010'.
+The Cab discography was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010'.
+Never Shout Never was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010'.
+
+CLAIM: Grigori Vasilyevich Aleksandrov was a prominent director who worked frequently with the composer of Moya Moskva.
+DECOMPOSED: Grigori Vasilyevich Aleksandrov was a prominent director.
+The composer of Moya Moskva worked frequently with Grigori Vasilyevich Aleksandrov.
+
+CLAIM: The Lusty Men is a western directed by this man. He and the writer of America America are both actors and directors.
+DECOMPOSED: The Lusty Men is a western directed by an american man who is both an actor and director.
+America America was written by a person who is both an actor and director.
+
+CLAIM: {claim}
+DECOMPOSED:"""
+
+
+decompose_9shot_instruct_refined_prompt = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, your goal is to decompose it down into simpler, standalone claims.
+Each decomposed claim should:
+
+1. Isolate Main Entities and Relationships: Identify the main entities and their relationships within the claim to enhance semantic similarity with potential matching documents, while avoiding overly atomic decomposition.
+2. Ensure Standalone Validity: Each claim should be self-contained, providing all necessary context to be understandable and searchable independently, avoiding references to other decompositions.
+3. not add any information which is not present in the multi-hop claim, only use Information given in the multi-hop claim.
+4. Be separated with a newline.
+[/INST]
+###
+CLAIM: The musician that signed Godhead (band) to their label and another singer are both American singer, songwriters. Second Hand Life is the tenth solo studio album by this other singer.
+DECOMPOSED: An American singer and songwriter signed the band Godhead to their label.
+"Second Hand Life" is the tenth solo studio album released by an American singer and songwriter.
+
+CLAIM: Of the two films, Summer Wars and The Secret of Kells, the 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+DECOMPOSED: Summer Wars is a film.
+The Secret of Kells is a film.
+The 2009 stop-motion animated film that Mike McFarland voiced in, is from Japan.
+
+CLAIM: The actress that starred as a parent in Sky High (2005 film) is married to one of the subjects of film-critic Nigel Andrews' books. She also starred in a 1994 film about a pregnant woman who is stranded at a trading post during the American Civil War.
+DECOMPOSED: An actress starred as a parent in the 2005 film Sky High.
+An actress is married to one of the subjects of film-critic Nigel Andrews' books.
+An actress starred in a 1994 film about a pregnant woman who is stranded at a trading post during the American Civil War.
+
+CLAIM: Dana White is the president of the organization that Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+DECOMPOSED: Dana White is the president of an organization.
+Forrest Griffin vs. Stephan Bonnar was thought to be one of the greatest bar fights in history.
+
+CLAIM: The home of Sir John Cutts who died in 1615 is a house at a parish 18.7 miles from central London.
+DECOMPOSED: The home of Sir John Cutts is a house at a parish 18.7 miles from central London.
+Sir John Cutts died in 1615.
+
+CLAIM: A species related to Xanthosoma and Coronilla are both flowering plants.
+DECOMPOSED: A species related to Xanthosoma is a flowering plant.
+Coronilla is a flowering plant.
+
+CLAIM: Hey Monday was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010' alongside The Cab discography and Never Shout Never.
+DECOMPOSED: Hey Monday was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010'.
+The Cab discography was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010'.
+Never Shout Never was featured on the cover page of the Alternative Press music magazine for the '100 Bands You Need to Know in 2010'.
+
+CLAIM: Grigori Vasilyevich Aleksandrov was a prominent director who worked frequently with the composer of Moya Moskva.
+DECOMPOSED: Grigori Vasilyevich Aleksandrov was a prominent director.
+The composer of Moya Moskva worked frequently with Grigori Vasilyevich Aleksandrov.
+
+CLAIM: The Lusty Men is a western directed by this man. He and the writer of America America are both actors and directors.
+DECOMPOSED: The Lusty Men is a western directed by an american man who is both an actor and director.
+America America was written by a person who is both an actor and director.
+###
+CLAIM: {claim}
+DECOMPOSED:"""
 
 decompose_entity_based = """<s> [INST] Given a multi-hop claim for retrieval from a vector database, decompose it into simpler, standalone claims that adhere to the following criteria:
 1. Be Precise and Contextualized: Incorporate specific details and context that are likely to match the vectors of relevant documents in the database.
