@@ -113,5 +113,5 @@ if __name__ == "__main__":
     thresholds = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]
     index = run_on_whole_dataset()
     print(calculate_percentages_refined(index, thresholds))
-    save_obj(data, "cross_enc_threshold_calculation.json")
+    #save_obj(data, "cross_enc_threshold_calculation.json")
     save_obj(data, "../data/cross_enc_threshold_calculation.json")
