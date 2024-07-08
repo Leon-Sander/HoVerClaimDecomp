@@ -12,20 +12,6 @@ def is_successful_retrieval(obj, retrieval_key):
             
     return True
 
-"""def compute_f1(gold_toks, pred_toks):
-    gold_toks = [unicodedata.normalize('NFD', _t) for _t in gold_toks]
-    pred_toks = [unicodedata.normalize('NFD', _t) for _t in pred_toks]
-    common = collections.Counter(gold_toks) & collections.Counter(pred_toks)
-    num_same = sum(common.values())
-    if len(gold_toks) == 0 or len(pred_toks) == 0:
-        # If either is no-answer, then F1 is 1 if they agree, 0 otherwise
-        return int(gold_toks == pred_toks)
-    if num_same == 0:
-        return 0
-    precision = 1.0 * num_same / len(pred_toks)
-    recall = 1.0 * num_same / len(gold_toks)
-    f1 = (2 * precision * recall) / (precision + recall)
-    return f1"""
 
 def calculate_success_percentage(file_path, dataset_type, embedder_name, k):
     #file_path = f'{embedder_name}_retrieval_output_{dataset_type}_{k}.json'
@@ -39,6 +25,7 @@ def calculate_success_percentage(file_path, dataset_type, embedder_name, k):
 
     for obj in data:
         num_hops = obj['num_hops']
+        # only for supported claims to compare with baleen
         if obj["label"] == "SUPPORTED":
             hop_counts[num_hops]["total"] += 1
             if is_successful_retrieval(obj, retrieval_key="retrieved"):

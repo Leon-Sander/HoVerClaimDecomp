@@ -213,7 +213,6 @@ def generate_subquestions(data, run_count):
                         batch_indices = indices[i:i + 50]
                         sub_questions_batch = run_in_parallel(claims=batch_claims, task_type="subquestion_generation",llm1=llm1, llm2=llm2)
                         
-                        # Collect sub-questions and prepare base claim enhancement context
                         for item_index, sub_questions in enumerate(sub_questions_batch):
                             original_item_index = batch_indices[item_index]
                             data[hop_count][key][original_item_index][f"sub_questions_{run_count}"] = sub_questions
@@ -475,11 +474,54 @@ def create_top_sentences(data, run_count, threshold=60):
                         item[f"top_sentences_{run_count}"] = top_sentences_list
                     except KeyError:
                         uid = item["uid"]
-                        logging.info(f'Error in create_top_sentences, item {uid}, data["{hop_count}"]["{key}"]["{item_index}"]')#, setting to previous run results.")
+                        logging.info(f'Error in create_top_sentences, item {uid}, data["{hop_count}"]["{key}"]["{item_index}"]')
                         logging.info(traceback.format_exc())
-                        #item[f"claim_{run_count}"] = item[f"claim_{run_count-1}"]
-                        #item[f"retrieved_{run_count}"] = item[f"retrieved_{run_count-1}"]
-                        #item[f"sub_questions_{run_count}"] = item[f"sub_questions_{run_count-1}"]
-                        #item[f"sub_question_retrieval_{run_count}"] = item[f"sub_question_retrieval_{run_count-1}"]
-                        #item[f"top_sentences_{run_count}"] = item[f"top_sentences_{run_count-1}"]
+
+    return data
+
+
+def create_top_sentences_with_filter(data, run_count, threshold=60):
+    for hop_count in data:
+        if run_count <= int(hop_count) - 1:
+            for key in data[hop_count]:
+                for item_index, item in enumerate(data[hop_count][key]):
+                    if f"top_sentences_{run_count}" in item:
+                        continue
+                    
+                    try:
+                        top_sentences_list = []
+                        for index in range(threshold):
+                            if len(top_sentences_list) >= threshold:
+                                break
+                            for sentences_list in item[f"sub_question_sentences_{run_count}"]:
+                                if len(top_sentences_list) >= threshold:
+                                    break
+                                if index < len(sentences_list):
+                                    if sentences_list[index] not in top_sentences_list:
+                                        if sentences_list[index] not in item["previous_iteration_sentences"]:
+                                            top_sentences_list.append(sentences_list[index])
+
+                        item["previous_iteration_sentences"].extend(top_sentences_list)
+                        item[f"top_sentences_{run_count}"] = top_sentences_list
+                    except KeyError:
+                        uid = item["uid"]
+                        logging.info(f'Error in create_top_sentences, item {uid}, data["{hop_count}"]["{key}"]["{item_index}"]')
+                        logging.info(traceback.format_exc())
+
+    return data
+
+def assemble_top_decomposed_retrieval_documents(data, max_run_count):
+    for run_count in range(max_run_count+1):
+        for hop_count in data:
+            for key in data[hop_count]:
+                for item in data[hop_count][key]:
+                    decomp_retrieval_100 = []
+                    for index in range(100):
+                        for retrieval in item[f"decomposed_claims_retrieval_{run_count}"]:
+                            
+                            if len(decomp_retrieval_100) >= 100:
+                                break
+                            if index < len(retrieval):
+                                decomp_retrieval_100.append(retrieval[index])
+                    item[f"decomposed_claims_retrieval_100_assembled"] = decomp_retrieval_100
     return data

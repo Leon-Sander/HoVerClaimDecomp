@@ -1,3 +1,0 @@
-vector_db:
-  mistral_db: "chroma_db_mistral"
-  bert_db: "chroma_db_bert"

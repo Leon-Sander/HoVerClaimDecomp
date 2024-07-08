@@ -1,7 +1,7 @@
 import sqlite3
 import unicodedata
 
-def connect_to_db(db_path = '/home/sander/code/thesis/hover/data/wiki_wo_links.db'):
+def connect_to_db(db_path = 'data/wiki_wo_links.db'):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     return conn, cursor

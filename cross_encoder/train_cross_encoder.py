@@ -17,7 +17,7 @@ if __name__ == "__main__":
     model_name = "bert-base-uncased"
     batch_size = 32
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    data = load_obj("/home/sander/code/thesis/hover/leon/cross_encoder/cross_encoder_claim_sentence_label_pairs_train.json")
+    data = load_obj("cross_encoder_claim_sentence_label_pairs_train.json")
 
     logger = TensorBoardLogger("tb_logs", name=f"cross_enc_{model_name}_{timestamp}")
     early_stopping_callback = EarlyStopping(

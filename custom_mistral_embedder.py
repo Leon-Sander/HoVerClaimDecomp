@@ -22,7 +22,7 @@ class CustomMistralEmbedder(Embeddings):
         self.tokenizer = AutoTokenizer.from_pretrained('intfloat/e5-mistral-7b-instruct')
         self.model = AutoModel.from_pretrained('intfloat/e5-mistral-7b-instruct', torch_dtype=torch.float16)
         self.model.eval()
-        self.model.to(self.device)
+        
         self.task = 'Given a claim, retrieve documents that support or refute the claim'
         self.question_task = "Given a question, retrieve relevant documents that best answer the question"
         self.multi_hop_task = 'Given a multi-hop claim, retrieve documents that support or refute the claim'
@@ -30,8 +30,10 @@ class CustomMistralEmbedder(Embeddings):
         self.pool_type = "last"
         self.l2_normalize = True
 
-        #if self.gpu_count > 1:
-        #    self.model = nn.DataParallel(self.model)
+        if self.gpu_count > 1:
+            self.model = nn.DataParallel(self.model)
+        else:
+            self.model.to(self.device)
 
     def last_token_pool(self, last_hidden_states: Tensor,
                     attention_mask: Tensor) -> Tensor:
@@ -173,8 +175,8 @@ def pool(last_hidden_states: Tensor,
 
     if pool_type == "avg":
         emb = last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
-    elif pool_type == "weightedavg":  # position-weighted mean pooling from SGPT (https://arxiv.org/abs/2202.08904)
-        attention_mask *= attention_mask.cumsum(dim=1)  # [0,1,1,1,0,0] -> [0,1,2,3,0,0]
+    elif pool_type == "weightedavg":
+        attention_mask *= attention_mask.cumsum(dim=1)
         s = torch.sum(last_hidden * attention_mask.unsqueeze(-1).float(), dim=1)
         d = attention_mask.sum(dim=1, keepdim=True).float()
         emb = s / d

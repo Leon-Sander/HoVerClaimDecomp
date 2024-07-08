@@ -11,7 +11,7 @@ import sqlite3
 
 def create_sentences_dict(data_type):
     conn, cursor = connect_to_db()
-    data = load_obj(f"/home/sander/code/thesis/hover/data/hover/hover_{data_type}_release_v1.1.json")
+    data = load_obj(f"../data/hover_{data_type}_release_v1.1.json")
     tok = CoreNLPTokenizer()
 
     supporting_facts = set()
@@ -30,7 +30,7 @@ def create_sentences_dict(data_type):
 
 def create_claim_text_label_pairs(data_type, sentences_dict, balance_labels=True, with_title=True):
     claim_and_supporting_facts = {}
-    data = load_obj(f"/home/sander/code/thesis/hover/data/hover/hover_{data_type}_release_v1.1.json")
+    data = load_obj(f"../data/hover_{data_type}_release_v1.1.json")
     for item in data:
         claim_and_supporting_facts[item["claim"]] = {}
         for title, sentence_level in item["supporting_facts"]:
@@ -60,7 +60,7 @@ def create_claim_text_label_pairs(data_type, sentences_dict, balance_labels=True
 
 
 class ClaimSentencePairsCreator:
-    def __init__(self, sql_db_path = '/home/sander/code/thesis/hover/data/wiki_wo_links.db', with_title = True):
+    def __init__(self, sql_db_path = '../data/wiki_wo_links.db', with_title = True):
         conn, self.cursor = self._connect_to_db(sql_db_path)
         self.sentence_splitter = CoreNLPTokenizer()
         self.with_title = with_title
@@ -125,7 +125,7 @@ class ClaimSentencePairsCreator:
                 f.write(title + "\n")
 
         print("Inserting records into new db")
-        conn, cursor = connect_to_db("/home/sander/code/thesis/hover/data/hover_with_sentences_splitted.db")
+        conn, cursor = connect_to_db("../data/hover_with_sentences_splitted.db")
         cursor.executemany('''
             INSERT INTO documents (title, text, splitted_sentences, splitted_sentences_with_title)
             VALUES (?, ?, ?, ?);
@@ -167,7 +167,7 @@ class ClaimSentencePairsCreator:
 
 
 class ClaimSentencePairsCreator_NewDb:
-    def __init__(self, sql_db_path = '/home/sander/code/thesis/hover/data/hover_with_sentences_splitted.db', with_title = True):
+    def __init__(self, sql_db_path = '../data/hover_with_sentences_splitted.db', with_title = True):
         conn, self.cursor = connect_to_db(sql_db_path)
         self.with_title = with_title
         print("Sentences will be created with title: " + str(self.with_title))
