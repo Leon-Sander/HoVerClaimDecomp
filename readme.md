@@ -1,4 +1,4 @@
-# Master's Thesis Repository: Claim Verification Enhancement
+# Master's Thesis Repository: Enhancing Retrieval of Multi-Hop Claim Verification in the HoVer Dataset with Claim Decomposition Using Large Language Models
 
 ## Introduction
 This repository contains all the research materials and code associated with my master's thesis on enhancing the process of claim verification.
